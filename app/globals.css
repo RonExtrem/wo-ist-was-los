@@ -1,26 +1,67 @@
 @import "tailwindcss";
 
+/* Farbwelt "Weißensee": klares Türkis, Lärchengrün, Felsgrau, Abendsonne */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --see: #0b6e78;
+  --see-hell: #2bb8bd;
+  --see-zart: #e3f4f4;
+  --laerche: #3f6b4e;
+  --fels: #6b7a80;
+  --abendsonne: #f08a3c;
+  --background: #f4f8f8;
+  --flaeche: #ffffff;
+  --foreground: #14303a;
+  --gedaempft: #55686f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --see: #4fd0d3;
+    --see-hell: #2bb8bd;
+    --see-zart: #12343b;
+    --laerche: #7fb08f;
+    --fels: #9aa9ae;
+    --abendsonne: #f6a15f;
+    --background: #0c1d22;
+    --flaeche: #13292f;
+    --foreground: #e6f1f2;
+    --gedaempft: #a3b6bb;
+  }
+}
+
+:root[data-theme="dark"] {
+  --see: #4fd0d3;
+  --see-hell: #2bb8bd;
+  --see-zart: #12343b;
+  --laerche: #7fb08f;
+  --fels: #9aa9ae;
+  --abendsonne: #f6a15f;
+  --background: #0c1d22;
+  --flaeche: #13292f;
+  --foreground: #e6f1f2;
+  --gedaempft: #a3b6bb;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-flaeche: var(--flaeche);
+  --color-see: var(--see);
+  --color-see-hell: var(--see-hell);
+  --color-see-zart: var(--see-zart);
+  --color-laerche: var(--laerche);
+  --color-fels: var(--fels);
+  --color-abendsonne: var(--abendsonne);
+  --color-gedaempft: var(--gedaempft);
+  --font-sans: var(--font-figtree);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Große Grundschrift für gute Lesbarkeit */
+html {
+  font-size: 112.5%; /* 18px */
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
