@@ -5,6 +5,7 @@
   --see: #0b6e78;
   --see-hell: #2bb8bd;
   --see-zart: #e3f4f4;
+  --kopf: #0b6e78; /* Kopfbereich, immer dunkel genug für weiße Schrift */
   --laerche: #3f6b4e;
   --fels: #6b7a80;
   --abendsonne: #f08a3c;
@@ -19,6 +20,7 @@
     --see: #4fd0d3;
     --see-hell: #2bb8bd;
     --see-zart: #12343b;
+    --kopf: #0d4f58;
     --laerche: #7fb08f;
     --fels: #9aa9ae;
     --abendsonne: #f6a15f;
@@ -33,6 +35,7 @@
   --see: #4fd0d3;
   --see-hell: #2bb8bd;
   --see-zart: #12343b;
+  --kopf: #0d4f58;
   --laerche: #7fb08f;
   --fels: #9aa9ae;
   --abendsonne: #f6a15f;
@@ -49,6 +52,7 @@
   --color-see: var(--see);
   --color-see-hell: var(--see-hell);
   --color-see-zart: var(--see-zart);
+  --color-kopf: var(--kopf);
   --color-laerche: var(--laerche);
   --color-fels: var(--fels);
   --color-abendsonne: var(--abendsonne);
