@@ -37,7 +37,7 @@ const STICHWOERTER: [RegExp, KategorieId][] = [
   [/konzert|theater|kabarett|lesung|ausstellung|orchester|chor|oper|klassik|museum/, "klassik-kultur"],
   [/kinder|familie|baby|\bjugend|kasperl|zirkus|vergnügungspark|gaudepark|frühlingsfest/, "familie-kinder"],
   [/\blauf\b|(stadt|silvester|volks|berg|nacht|benefiz|charity|oster|kinder|staffel|crosscountry|trail)lauf|marathon|turnier|radrennen|skirennen|eishockey|fußball|triathlon|\bski\b|eislaufen/, "sport"],
-  [/wanderung|führung|naturpark|\balm\b|almwanderung|ausflug/, "natur-ausfluege"],
+  [/wanderung|(natur|wald|kräuter|wild|see|berg)führung|naturpark|\balm\b|almwanderung|ausflug|schneeschuh/, "natur-ausfluege"],
 ];
 
 export function kategorienAusText(text: string): KategorieId[] {
@@ -47,6 +47,12 @@ export function kategorienAusText(text: string): KategorieId[] {
   // „Messe“ kann auch ein Gottesdienst sein (Rorate-Messe, Bergmesse …)
   const gottesdienst = /rorate|gottesdienst|hl\. messe|heilige messe|feldmesse|bergmesse|almmesse|waldmesse|seemesse|pfarr|kirche|andacht/.test(t);
   if (gottesdienst && !/markt|basar|börse|bazar|fachmesse|freizeitmesse|herbstmesse/.test(t)) gefunden.delete("messen-maerkte");
+  // Schlager-/Popkonzert ist kein Klassik-Termin, nur weil „Konzert“ im Text steht
+  if ((gefunden.has("schlager-volksmusik") || gefunden.has("pop-rock-party")) && !/theater|oper|klassik|orchester|kammermusik|kabarett/.test(t)) {
+    gefunden.delete("klassik-kultur");
+  }
+  // Adventmärkte gehören zu „Advent“, nicht zusätzlich zu „Messen & Märkte“
+  if (gefunden.has("advent") && !/messe|flohmarkt|bauernmarkt/.test(t)) gefunden.delete("messen-maerkte");
   return [...gefunden];
 }
 

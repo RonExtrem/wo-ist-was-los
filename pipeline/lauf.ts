@@ -6,8 +6,10 @@ import { db, dbSchliessen } from "./lib/db.ts";
 import { speichereEvents, verschwundeneMarkieren, leereStatistik } from "./speichern.ts";
 import { kaerntnerMessen } from "./quellen/kaerntner-messen.ts";
 import { meinbezirk } from "./quellen/meinbezirk.ts";
+import { KI_SEITEN, kiQuelle } from "./quellen/ki-seiten.ts";
+import { kiAufrufeBisher } from "./lib/gemini.ts";
 
-const ALLE_QUELLEN: Quelle[] = [kaerntnerMessen, meinbezirk];
+const ALLE_QUELLEN: Quelle[] = [kaerntnerMessen, meinbezirk, ...KI_SEITEN.map(kiQuelle)];
 
 const args = process.argv.slice(2);
 const nurQuelle = args.find((a) => a.startsWith("--quelle="))?.split("=")[1];
@@ -84,7 +86,8 @@ async function main() {
       // Gesundheit der Quelle: deutlich weniger als sonst → „schlechte Nacht“
       const { rows } = await pool.query("SELECT durchschnitt FROM quellen WHERE id = $1", [q.id]);
       const schnitt = rows[0]?.durchschnitt == null ? null : Number(rows[0].durchschnitt);
-      const schlecht = !!bericht.fehler || bericht.gefunden === 0 || (schnitt != null && bericht.gefunden < schnitt * 0.4);
+      const kontingent = /Höchstzahl|GEMINI_API_KEY fehlt/.test(bericht.fehler ?? "");
+      const schlecht = !kontingent && (!!bericht.fehler || bericht.gefunden === 0 || (schnitt != null && bericht.gefunden < schnitt * 0.4));
       const neuerSchnitt = bericht.fehler ? schnitt : schnitt == null ? bericht.gefunden : schnitt * 0.7 + bericht.gefunden * 0.3;
       await pool.query(
         `UPDATE quellen SET letzter_lauf = now(), gefunden_letzter_lauf = $2, durchschnitt = $3,

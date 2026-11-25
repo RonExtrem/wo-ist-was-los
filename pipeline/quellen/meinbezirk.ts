@@ -168,6 +168,7 @@ export const meinbezirk: Quelle = {
         events.push({
           quelleId: "meinbezirk",
           url,
+          urlIstDetail: true,
           titel,
           beschreibung,
           beginn: z.beginn,

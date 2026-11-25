@@ -4,6 +4,8 @@ import type { KategorieId } from "../lib/kategorien.ts";
 export interface RohEvent {
   quelleId: string;
   url: string; // Link zur Originalseite
+  /** true, wenn url eine eigene Seite NUR für dieses Event ist (nicht eine Übersichtsliste). */
+  urlIstDetail?: boolean;
   titel: string;
   beschreibung?: string; // kurz, Deutsch
   originalsprache?: string; // 'de', 'sl', 'it' …

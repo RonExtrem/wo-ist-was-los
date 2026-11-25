@@ -10,6 +10,7 @@ interface TestEvent {
   bis: string;
   thema: string;
   land: string;
+  orte: string[];
 }
 
 const liste = JSON.parse(await readFile(new URL("./testliste.json", import.meta.url), "utf8")) as { events: TestEvent[] };
@@ -21,8 +22,9 @@ for (const t of liste.events) {
       WHERE titel ILIKE ANY($1::text[])
         AND coalesce(ende, beginn) >= $2::date - interval '1 day'
         AND beginn <= $3::date + interval '2 days'
+        AND (ort_name || ' ' || coalesce(adresse, '')) ILIKE ANY($4::text[])
       LIMIT 1`,
-    [muster, t.von, t.bis]
+    [muster, t.von, t.bis, t.orte.map((o) => `%${o}%`)]
   );
   const ok = rows.length > 0;
   if (ok) gefunden++;

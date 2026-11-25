@@ -69,19 +69,20 @@ export async function speichereEvents(
     const punkt = `SRID=4326;POINT(${ort.lng} ${ort.lat})`;
 
     // 1) Gleiches Event schon da (Fingerabdruck oder gleiche URL am gleichen Tag)?
+    // (gleiche URL zählt nur bei echten Detailseiten – auf Übersichtsseiten stehen viele Events mit derselben URL)
     let { rows } = await pool.query(
       `SELECT e.id FROM events e WHERE e.fingerabdruck = $1
        UNION
        SELECT e.id FROM events e JOIN event_links l ON l.event_id = e.id
-        WHERE l.url = $2 AND (e.beginn AT TIME ZONE 'Europe/Vienna')::date = $3::date
+        WHERE $4 AND l.url = $2 AND (e.beginn AT TIME ZONE 'Europe/Vienna')::date = $3::date
        LIMIT 1`,
-      [fp, e.url, tag]
+      [fp, e.url, tag, e.urlIstDetail === true]
     );
     let eventId: string | null = rows[0]?.id ?? null;
     let art: "aktualisiert" | "zusammengefuehrt" | "neu" | "termin" = "aktualisiert";
 
     // 2) Terminänderung: URL kennt genau ein künftiges Event mit anderem Datum
-    if (!eventId && urlAnzahl.get(e.url) === 1) {
+    if (!eventId && e.urlIstDetail === true && urlAnzahl.get(e.url) === 1) {
       ({ rows } = await pool.query(
         `SELECT e.id, e.beginn, e.ende FROM events e JOIN event_links l ON l.event_id = e.id
           WHERE l.url = $1 AND l.quelle_id = $2 AND e.beginn > now() AND e.status <> 'verschwunden'`,

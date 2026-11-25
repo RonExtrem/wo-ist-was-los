@@ -42,6 +42,7 @@ export const kaerntnerMessen: Quelle = {
       events.push({
         quelleId: "kaerntner-messen",
         url: new URL(link, URL_KALENDER).href,
+        urlIstDetail: link !== URL_KALENDER,
         titel,
         beschreibung: beschreibung || undefined,
         beginn: wienZeit(von.jahr, von.monat, von.tag),
