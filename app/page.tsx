@@ -4,7 +4,7 @@ export default function Home() {
     <main className="flex flex-1 flex-col">
       <header className="relative overflow-hidden bg-kopf px-5 pb-16 pt-12 text-white">
         <p className="text-base opacity-90">Servus!</p>
-        <h1 className="mt-1 text-4xl font-bold tracking-tight">Wo ist was los?</h1>
+        <h1 className="mt-1 text-4xl font-bold tracking-tight">Wo is wos los?</h1>
         <p className="mt-3 max-w-md text-lg opacity-90">
           Messen, Konzerte und Feste in Kärnten, Slowenien und Friaul.
         </p>

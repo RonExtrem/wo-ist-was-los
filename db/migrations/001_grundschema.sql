@@ -1,4 +1,4 @@
--- Wo ist was los? – Grundschema (Neon Postgres + PostGIS)
+-- Wo is wos los? – Grundschema (Neon Postgres + PostGIS)
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 

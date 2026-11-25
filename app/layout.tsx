@@ -9,10 +9,10 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Wo ist was los?",
+  title: "Wo is wos los?",
   description: "Veranstaltungen, Messen und Feste in Kärnten, Slowenien und Friaul.",
-  applicationName: "Wo ist was los?",
-  appleWebApp: { capable: true, title: "Wo ist was los?", statusBarStyle: "default" },
+  applicationName: "Wo is wos los?",
+  appleWebApp: { capable: true, title: "Wo is wos los?", statusBarStyle: "default" },
   icons: { apple: "/icons/apple-touch-icon.png" },
 };
 

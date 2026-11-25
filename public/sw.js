@@ -1,4 +1,4 @@
-// Service Worker von "Wo ist was los?": empfängt Push-Nachrichten und öffnet beim Antippen das Event.
+// Service Worker von "Wo is wos los?": empfängt Push-Nachrichten und öffnet beim Antippen das Event.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
@@ -8,10 +8,10 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: "Wo ist was los?", body: event.data.text() };
+    data = { title: "Wo is wos los?", body: event.data.text() };
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || "Wo ist was los?", {
+    self.registration.showNotification(data.title || "Wo is wos los?", {
       body: data.body || "",
       icon: "/icons/icon-192.png",
       badge: "/icons/badge-96.png",
