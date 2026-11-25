@@ -1,0 +1,20 @@
+{
+  "beschreibung": "Blindtest: bekannte Events, unabhängig vom Sammler recherchiert (Stand 25.11.2026). Prüft, wie viele davon die App selbst findet.",
+  "events": [
+    { "titel": "Christkindlmarkt Klagenfurt (Neuer Platz)", "suchbegriffe": ["christkindlmarkt", "neuer platz"], "ort": "Klagenfurt", "von": "2026-11-14", "bis": "2026-12-24", "thema": "advent", "land": "AT" },
+    { "titel": "Veldener Advent", "suchbegriffe": ["veldener advent", "advent velden"], "ort": "Velden", "von": "2026-11-20", "bis": "2026-12-23", "thema": "advent", "land": "AT" },
+    { "titel": "Advent Pur Tarvis", "suchbegriffe": ["advent pur"], "ort": "Tarvis", "von": "2026-11-28", "bis": "2026-11-28", "thema": "advent", "land": "IT" },
+    { "titel": "Nikolo & Krampus in Tarvis", "suchbegriffe": ["krampus tarvis", "san nicolo", "san nicolò"], "ort": "Tarvis", "von": "2026-12-05", "bis": "2026-12-05", "thema": "feste-brauchtum", "land": "IT" },
+    { "titel": "Villacher Fasching – Premiere-Sitzung", "suchbegriffe": ["villacher fasching", "faschingssitzung"], "ort": "Villach", "von": "2027-01-08", "bis": "2027-01-08", "thema": "feste-brauchtum", "land": "AT" },
+    { "titel": "Agrarmesse Alpen-Adria", "suchbegriffe": ["agrarmesse"], "ort": "Klagenfurt", "von": "2027-01-15", "bis": "2027-01-17", "thema": "messen-maerkte", "land": "AT" },
+    { "titel": "Alternative Elfstedentocht am Weißensee", "suchbegriffe": ["elfstedentocht", "elf-städte", "elf städte"], "ort": "Weißensee", "von": "2027-01-17", "bis": "2027-01-30", "thema": "sport", "land": "AT" },
+    { "titel": "Häuslbauermesse", "suchbegriffe": ["häuslbauermesse"], "ort": "Klagenfurt", "von": "2027-02-19", "bis": "2027-02-21", "thema": "messen-maerkte", "land": "AT" },
+    { "titel": "Skisprung-Weltcupfinale Planica", "suchbegriffe": ["planica"], "ort": "Planica", "von": "2027-03-18", "bis": "2027-03-21", "thema": "sport", "land": "SI" },
+    { "titel": "Freizeitmesse Klagenfurt", "suchbegriffe": ["freizeitmesse"], "ort": "Klagenfurt", "von": "2027-04-02", "bis": "2027-04-04", "thema": "messen-maerkte", "land": "AT" },
+    { "titel": "Intervino", "suchbegriffe": ["intervino"], "ort": "Klagenfurt", "von": "2027-04-02", "bis": "2027-04-04", "thema": "kulinarik-wein", "land": "AT" },
+    { "titel": "Melissa Naschenweng – Live „Daham“", "suchbegriffe": ["naschenweng"], "ort": "Klagenfurt", "von": "2027-07-04", "bis": "2027-07-04", "thema": "schlager-volksmusik", "land": "AT" },
+    { "titel": "Starnacht am Wörthersee", "suchbegriffe": ["starnacht"], "ort": "Klagenfurt", "von": "2027-07-10", "bis": "2027-07-10", "thema": "schlager-volksmusik", "land": "AT" },
+    { "titel": "Nik P. – Open Air", "suchbegriffe": ["nik p"], "ort": "Klagenfurt", "von": "2027-07-11", "bis": "2027-07-11", "thema": "schlager-volksmusik", "land": "AT" },
+    { "titel": "Villacher Kirchtag", "suchbegriffe": ["villacher kirchtag"], "ort": "Villach", "von": "2027-08-01", "bis": "2027-08-08", "thema": "feste-brauchtum", "land": "AT" }
+  ]
+}

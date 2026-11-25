@@ -1,0 +1,31 @@
+name: Events sammeln (nachts)
+
+on:
+  schedule:
+    - cron: "15 1 * * *" # täglich ca. 2:15 Uhr (Winterzeit) / 3:15 Uhr (Sommerzeit)
+  workflow_dispatch: {} # per Knopfdruck auf GitHub startbar
+
+concurrency:
+  group: events-sammeln
+  cancel-in-progress: false
+
+jobs:
+  sammeln:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+      TZ: Europe/Vienna
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Datenbank aktualisieren
+        run: node scripts/migrate.mjs
+      - name: Events sammeln
+        run: node pipeline/lauf.ts
