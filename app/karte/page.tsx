@@ -484,12 +484,24 @@ export default function KartenSeite() {
         {/* Ausgewählte Veranstaltung(en) unten */}
         {gewaehlt.length > 0 && (
           <div className="absolute inset-x-0 bottom-0 z-10 max-h-[55%] overflow-y-auto rounded-t-3xl bg-background/97 px-4 pb-4 pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.18)] backdrop-blur">
-            <div className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-background/97 px-4 py-2">
-              <p className="flex-1 font-titel text-lg leading-tight">
-                {gewaehlt.length === 1
-                  ? "Hier ist was los"
-                  : `${gewaehlt.length} Veranstaltungen`}
-              </p>
+            {/* Kopf: Titel + Schließen in einer Zeile, „Auf Karte zeigen“ darunter – passt auch bei großer Schrift */}
+            <div className="sticky top-0 z-10 -mx-4 bg-background/97 px-4 pb-2 pt-1">
+              <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-linie" />
+              <div className="flex items-center gap-3">
+                <p className="min-w-0 flex-1 truncate font-titel text-xl leading-tight">
+                  {gewaehlt.length === 1
+                    ? "Hier ist was los"
+                    : `${gewaehlt.length} Veranstaltungen`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setAuswahl([])}
+                  aria-label="Schließen"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-flaeche-2"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
               {zoomen && gewaehlt.length > 1 && (
                 <button
                   type="button"
@@ -497,19 +509,11 @@ export default function KartenSeite() {
                     zoomen();
                     setAuswahl([]);
                   }}
-                  className="flex min-h-12 shrink-0 items-center gap-1.5 rounded-full bg-see-zart px-3 text-[0.9rem] font-semibold text-see"
+                  className="mt-2 flex min-h-12 items-center gap-2 rounded-full bg-see-zart px-4 text-[0.95rem] font-semibold text-see"
                 >
-                  <ZoomIn className="h-5 w-5" /> Auf Karte zeigen
+                  <ZoomIn className="h-5 w-5 shrink-0" /> Auf der Karte zeigen
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => setAuswahl([])}
-                aria-label="Schließen"
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-flaeche-2"
-              >
-                <X className="h-6 w-6" />
-              </button>
             </div>
             <ul className="flex flex-col gap-2">
               {gewaehlt.map((e, i) => (
