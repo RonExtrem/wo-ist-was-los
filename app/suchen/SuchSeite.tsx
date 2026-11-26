@@ -121,17 +121,16 @@ export function SuchSeite() {
     <main className="mx-auto w-full max-w-xl flex-1 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
       <h1 className="font-titel text-[2.1rem] leading-tight">Suchen</h1>
 
-      {/* Suchfeld läuft beim Scrollen oben mit – Vorschläge schon beim Tippen */}
-      <div className="sticky top-0 z-30 -mx-5 mt-2 bg-background/95 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur">
-        <SuchFeld
-          key={q}
-          wert={q}
-          suchen={(t) => setze({ q: t || null })}
-          lat={startpunkt.lat}
-          lng={startpunkt.lng}
-          radius={radius === "alle" ? "alle" : Number(radius) || 50}
-        />
-      </div>
+      {/* Suchfeld läuft beim Scrollen oben mit; Antippen öffnet den Such-Bildschirm mit Vorschlägen */}
+      <SuchFeld
+        key={q}
+        wert={q}
+        // Gleicher Zeitraum wie die Vorschläge (12 Monate), damit die Trefferzahl in der Liste stimmt
+        suchen={(t) => setze(t ? { q: t, zeit: "jahr" } : { q: null })}
+        lat={startpunkt.lat}
+        lng={startpunkt.lng}
+        radius={radius === "alle" ? "alle" : Number(radius) || 50}
+      />
 
       {neu > 0 && (
         <button
