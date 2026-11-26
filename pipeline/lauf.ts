@@ -10,6 +10,8 @@ import { KI_SEITEN, kiQuelle } from "./quellen/ki-seiten.ts";
 import { kiAufrufeBisher } from "./lib/gemini.ts";
 import { GEMEINDEN, gemeindeQuelle } from "./quellen/gemeinde-kalender.ts";
 import { kranjskaGora } from "./quellen/kranjska-gora.ts";
+import { suedtirol } from "./quellen/suedtirol.ts";
+import { dolomiti } from "./quellen/dolomiti.ts";
 
 // Reihenfolge = Wichtigkeit: Kärnten und Grenzgebiete zuerst, dann die anderen Bundesländer
 const [meinbezirkKaernten, ...meinbezirkRest] = BUNDESLAENDER.map(meinbezirkQuelle);
@@ -18,6 +20,8 @@ const ALLE_QUELLEN: Quelle[] = [
   meinbezirkKaernten,
   ...GEMEINDEN.map(gemeindeQuelle),
   kranjskaGora,
+  suedtirol,
+  dolomiti,
   ...KI_SEITEN.map(kiQuelle),
   ...meinbezirkRest,
 ];

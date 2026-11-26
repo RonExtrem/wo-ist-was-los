@@ -29,14 +29,14 @@ export const STANDARD_INTERESSEN: KategorieId[] = [
 const STICHWOERTER: [RegExp, KategorieId][] = [
   [/advent|christkind|weihnacht|krampus|nikolo|nikolaus|perchten|adventmarkt|punsch/, "advent"],
   [/kirchtag|kirchtog|zeltfest|feuerwehrfest|dorffest|sommerfest|seefest|brauchtum|trachten|fasching|maibaum|almabtrieb|erntedank|bauernherbst|fest\b|(?<!fuß|hand|volley|basket|feder|faust)ball\b|kränzchen|sternsing|maskenumzug|umzug|\bsagra\b|\bsagre\b|kirchweih|kurent|\bpust\b/, "feste-brauchtum"],
-  [/schlager|volksmusik|volkstüml|oberkrainer|musikanten|musikantenstadl|blasmusik|blasorchester|trachtenkapelle|zither|harmonika|alpenrock|kastelruther|amigos|narodnozabav|narodno-zabav|ansambel|ansambla/, "schlager-volksmusik"],
-  [/wein|martini|kulinari|genuss|kastanie|bauernmarkt|schnaps|bier|brot|käse|kas |reindling|kasnud/, "kulinarik-wein"],
+  [/schlager|volksmusik|volkstüml|oberkrainer|musikanten|musikantenstadl|blasmusik|blasorchester|trachtenkapelle|zither|harmonika|alpenrock|kastelruther|amigos|narodnozabav|narodno-zabav|ansambel|ansambla|musikkapelle|böhmische/, "schlager-volksmusik"],
+  [/wein|martini|kulinari|genuss|kastanie|bauernmarkt|schnaps|bier|brot|käse|kas |reindling|kasnud|verkostung|tasting|degustation|knödel/, "kulinarik-wein"],
   [/messe|flohmarkt|markt|basar|börse|bazar/, "messen-maerkte"],
   [/oldtimer|traktor|classic cars|auto&bike|motorrad|technik/, "oldtimer-technik"],
-  [/rock|pop|party|clubbing|dj |disco|festival|open air|open-air/, "pop-rock-party"],
+  [/rock|pop|party|clubbing|dj |disco|festival|open air|open-air|livemusik|live-musik|live music/, "pop-rock-party"],
   [/konzert|theater|kabarett|lesung|ausstellung|orchester|chor|oper|klassik|museum/, "klassik-kultur"],
   [/kinder|familie|baby|\bjugend|kasperl|zirkus|vergnügungspark|gaudepark|frühlingsfest/, "familie-kinder"],
-  [/\blauf\b|(stadt|silvester|volks|berg|nacht|benefiz|charity|oster|kinder|staffel|crosscountry|trail)lauf|marathon|turnier|radrennen|skirennen|eishockey|fußball|triathlon|\bski\b|eislaufen/, "sport"],
+  [/\blauf\b|(stadt|silvester|volks|berg|nacht|benefiz|charity|oster|kinder|staffel|crosscountry|trail)lauf|marathon|turnier|radrennen|skirennen|eishockey|fußball|triathlon|\bski\b|eislaufen|weltcup|world cup|\bcup\b|\brace\b|rennen\b|skimarathon|rodel/, "sport"],
   [/wanderung|(natur|wald|kräuter|wild|see|berg)führung|naturpark|\balm\b|almwanderung|ausflug|schneeschuh/, "natur-ausfluege"],
 ];
 
