@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { LoaderCircle, Search, SlidersHorizontal, X, RotateCcw, Sparkles } from "lucide-react";
+import { LoaderCircle, SlidersHorizontal, X, RotateCcw, Sparkles } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
 import { useEvents } from "@/lib/client/use-events";
 import { AnsichtWahl, EventListe } from "@/components/EventListe";
 import { StartpunktWahl } from "@/components/StartpunktWahl";
+import { SuchFeld } from "@/components/SuchFeld";
 import { KATEGORIE_ICON } from "@/components/KategorieBild";
 import { KATEGORIEN } from "@/lib/kategorien";
 import { LAENDER, type EventKurz } from "@/lib/event-typ";
@@ -64,7 +65,6 @@ export function SuchSeite() {
   const gratis = params.get("gratis") === "1";
   const q = params.get("q") ?? "";
   const neu = Number(params.get("neu")) || 0;
-  const [suchText, setSuchText] = useState(q);
 
   const setze = (aenderung: Record<string, string | null>) => {
     // Aktuelle Adresse als Basis – so gehen schnelle Tipps hintereinander nicht verloren
@@ -121,31 +121,17 @@ export function SuchSeite() {
     <main className="mx-auto w-full max-w-xl flex-1 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
       <h1 className="font-titel text-[2.1rem] leading-tight">Suchen</h1>
 
-      <form
-        className="mt-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setze({ q: suchText.trim() || null });
-        }}
-      >
-        <label className="flex min-h-14 items-center gap-3 rounded-2xl bg-flaeche px-4 shadow-karte ring-1 ring-linie focus-within:ring-2 focus-within:ring-see">
-          <Search aria-hidden className="h-6 w-6 text-gedaempft" />
-          <input
-            value={suchText}
-            onChange={(e) => setSuchText(e.target.value)}
-            onBlur={() => suchText.trim() !== q && setze({ q: suchText.trim() || null })}
-            placeholder="z. B. Kirchtag, Messe, Spittal …"
-            aria-label="Suchbegriff"
-            enterKeyHint="search"
-            className="h-14 flex-1 bg-transparent text-lg outline-none placeholder:text-gedaempft"
-          />
-          {suchText && (
-            <button type="button" aria-label="Suchbegriff löschen" onClick={() => { setSuchText(""); setze({ q: null }); }} className="flex h-10 w-10 items-center justify-center rounded-full bg-flaeche-2">
-              <X className="h-5 w-5" />
-            </button>
-          )}
-        </label>
-      </form>
+      {/* Suchfeld läuft beim Scrollen oben mit – Vorschläge schon beim Tippen */}
+      <div className="sticky top-0 z-30 -mx-5 mt-2 bg-background/95 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur">
+        <SuchFeld
+          key={q}
+          wert={q}
+          suchen={(t) => setze({ q: t || null })}
+          lat={startpunkt.lat}
+          lng={startpunkt.lng}
+          radius={radius === "alle" ? "alle" : Number(radius) || 50}
+        />
+      </div>
 
       {neu > 0 && (
         <button
@@ -247,7 +233,7 @@ export function SuchSeite() {
         )}
         {gruppen.map((g) => (
           <section key={g.titel} className="mt-6">
-            <h2 className="sticky top-0 z-10 -mx-5 bg-background/95 px-5 py-2 font-titel text-xl backdrop-blur">{g.titel}</h2>
+            <h2 className="sticky top-[calc(env(safe-area-inset-top)+5.25rem)] z-10 -mx-5 bg-background/95 px-5 py-2 font-titel text-xl backdrop-blur">{g.titel}</h2>
             <div className="mt-2">
               <EventListe events={g.events} zeigeTag={g.titel === "Läuft gerade"} />
             </div>
