@@ -6,6 +6,10 @@ import { STANDARD_INTERESSEN } from "@/lib/kategorien";
 import { pushMoeglich } from "./push";
 
 export interface Einstellungen {
+  /** Vorname – jedes Handy ist das Profil einer Person */
+  name: string;
+  /** Begrüßung beim ersten Start erledigt? */
+  eingerichtet: boolean;
   wohnortName: string;
   lat: number;
   lng: number;
@@ -35,6 +39,8 @@ export interface Startpunkt {
 }
 
 const STANDARD: Einstellungen = {
+  name: "",
+  eingerichtet: false,
   wohnortName: "Spittal an der Drau",
   lat: 46.7989,
   lng: 13.4955,

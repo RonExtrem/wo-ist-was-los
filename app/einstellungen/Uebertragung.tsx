@@ -5,7 +5,7 @@ import { Smartphone } from "lucide-react";
 import { useApp, type Einstellungen } from "@/lib/client/app-zustand";
 
 /** Handywechsel: Code am alten Handy anzeigen, am neuen eingeben. */
-export function Uebertragung() {
+export function Uebertragung({ nurEingeben = false }: { nurEingeben?: boolean } = {}) {
   const { api, setzeEinstellungen } = useApp();
   const [code, setCode] = useState<string | null>(null);
   const [eingabe, setEingabe] = useState("");
@@ -27,13 +27,14 @@ export function Uebertragung() {
       setMeldung({ ok: false, text: d?.fehler ?? "Das hat nicht geklappt. Bitte nochmal probieren." });
       return;
     }
-    if (d.einstellungen) setzeEinstellungen(d.einstellungen);
+    setzeEinstellungen({ ...(d.einstellungen ?? {}), eingerichtet: true });
     setMeldung({ ok: true, text: "Übernommen! Die gemerkten Veranstaltungen sind gleich da." });
     setTimeout(() => window.location.reload(), 1500);
   };
 
   return (
     <div className="flex flex-col gap-4">
+      {!nurEingeben && (
       <div className="rounded-2xl bg-flaeche-2 p-4">
         <p className="font-semibold">Am alten Handy</p>
         {code ? (
@@ -47,9 +48,10 @@ export function Uebertragung() {
           </button>
         )}
       </div>
+      )}
       <div className="rounded-2xl bg-flaeche-2 p-4">
         <label htmlFor="code" className="font-semibold">
-          Am neuen Handy: Code eingeben
+          {nurEingeben ? "Code vom alten Handy" : "Am neuen Handy: Code eingeben"}
         </label>
         <div className="mt-2 flex gap-2">
           <input

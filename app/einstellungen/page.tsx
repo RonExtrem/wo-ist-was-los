@@ -52,6 +52,18 @@ export default function Einstellungen() {
         <h1 className="font-titel text-[2.1rem] leading-tight">Einstellungen</h1>
       </div>
 
+      <Karte titel="Dein Name" text="Jedes Handy ist das Profil einer Person – mit eigenen Herzen, Erinnerungen und Interessen.">
+        <input
+          value={e.name}
+          onChange={(ev) => setzeEinstellungen({ name: ev.target.value.slice(0, 40) })}
+          placeholder="Vorname"
+          aria-label="Vorname"
+          autoComplete="given-name"
+          autoCapitalize="words"
+          className="h-14 w-full rounded-2xl bg-flaeche-2 px-4 text-lg ring-1 ring-linie outline-none focus:ring-2 focus:ring-see"
+        />
+      </Karte>
+
       <Karte titel="Daheim" text="Von hier aus werden Umkreis und Entfernung gemessen.">
         <button
           type="button"

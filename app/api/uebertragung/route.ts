@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     [geraet, alt[0].id]
   );
   const e = (await db.query(
-    `SELECT wohnort_name, ST_Y(wohnort::geometry) AS lat, ST_X(wohnort::geometry) AS lng, umkreis_km, interessen, schriftgroesse,
+    `SELECT name, wohnort_name, ST_Y(wohnort::geometry) AS lat, ST_X(wohnort::geometry) AS lng, umkreis_km, interessen, schriftgroesse,
             theme, erinnern, neu_fuer_dich, seltener, wochenend_tipp
        FROM einstellungen WHERE geraet_id = $1`,
     [alt[0].id]
@@ -64,6 +64,8 @@ export async function POST(req: Request) {
     ok: true,
     einstellungen: r
       ? {
+          name: r.name ?? "",
+          eingerichtet: true,
           wohnortName: r.wohnort_name,
           lat: r.lat,
           lng: r.lng,

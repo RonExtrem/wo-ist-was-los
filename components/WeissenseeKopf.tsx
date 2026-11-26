@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 import { motion } from "motion/react";
 import { Settings } from "lucide-react";
 import { begruessung, heuteText, wienStunde } from "@/lib/datum";
+import { useApp } from "@/lib/client/app-zustand";
 
 type Tageszeit = "morgen" | "tag" | "abend" | "nacht";
 
@@ -31,7 +32,9 @@ export function WeissenseeKopf({ kinder }: { kinder?: React.ReactNode }) {
   const zeit = useSyncExternalStore(keinAbo, tageszeit, () => "tag" as Tageszeit);
   const grussText = useSyncExternalStore(keinAbo, begruessung, () => "Servus");
   const datum = useSyncExternalStore(keinAbo, heuteText, () => "");
-  const gruss = { text: grussText, datum };
+  const { einstellungen } = useApp();
+  const name = einstellungen.name.trim();
+  const gruss = { text: name ? `${grussText}, ${name}` : grussText, datum };
   const f = HIMMEL[zeit];
 
   return (

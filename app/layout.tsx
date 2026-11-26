@@ -6,6 +6,7 @@ import { AppZustandProvider } from "@/lib/client/app-zustand";
 import { LeisteUnten } from "@/components/LeisteUnten";
 import { NachObenKnopf } from "@/components/NachObenKnopf";
 import { ErinnerungsFrage } from "@/components/ErinnerungsFrage";
+import { Willkommen } from "@/components/Willkommen";
 import { HinweisLeiste } from "@/components/HinweisLeiste";
 import "./globals.css";
 
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <NachObenKnopf />
             <ErinnerungsFrage />
             <HinweisLeiste />
+            <Willkommen />
           </Suspense>
         </AppZustandProvider>
         <ServiceWorkerRegister />
