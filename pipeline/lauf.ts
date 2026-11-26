@@ -5,13 +5,24 @@ import { holeText } from "./lib/http.ts";
 import { db, dbSchliessen } from "./lib/db.ts";
 import { speichereEvents, verschwundeneMarkieren, leereStatistik } from "./speichern.ts";
 import { kaerntnerMessen } from "./quellen/kaerntner-messen.ts";
-import { meinbezirk } from "./quellen/meinbezirk.ts";
+import { BUNDESLAENDER, meinbezirkQuelle } from "./quellen/meinbezirk.ts";
 import { KI_SEITEN, kiQuelle } from "./quellen/ki-seiten.ts";
 import { kiAufrufeBisher } from "./lib/gemini.ts";
 import { GEMEINDEN, gemeindeQuelle } from "./quellen/gemeinde-kalender.ts";
 import { kranjskaGora } from "./quellen/kranjska-gora.ts";
 
-const ALLE_QUELLEN: Quelle[] = [kaerntnerMessen, meinbezirk, ...GEMEINDEN.map(gemeindeQuelle), kranjskaGora, ...KI_SEITEN.map(kiQuelle)];
+// Reihenfolge = Wichtigkeit: Kärnten und Grenzgebiete zuerst, dann die anderen Bundesländer
+const [meinbezirkKaernten, ...meinbezirkRest] = BUNDESLAENDER.map(meinbezirkQuelle);
+const ALLE_QUELLEN: Quelle[] = [
+  kaerntnerMessen,
+  meinbezirkKaernten,
+  ...GEMEINDEN.map(gemeindeQuelle),
+  kranjskaGora,
+  ...KI_SEITEN.map(kiQuelle),
+  ...meinbezirkRest,
+];
+// Zeitgrenze: danach keine neue Quelle mehr anfangen (der Lauf soll sauber enden, bevor GitHub ihn abbricht)
+const MAX_MINUTEN = Number(process.env.MAX_MINUTEN ?? 320);
 
 const args = process.argv.slice(2);
 const nurQuelle = args.find((a) => a.startsWith("--quelle="))?.split("=")[1];
@@ -62,6 +73,11 @@ async function main() {
 
   const berichte: QuellenBericht[] = [];
   for (const q of quellen) {
+    if (Date.now() - laufStart.getTime() > MAX_MINUTEN * 60_000) {
+      log(`
+⏱ Zeitgrenze von ${MAX_MINUTEN} Minuten erreicht – ${q.name} und folgende kommen beim nächsten Lauf dran.`);
+      break;
+    }
     const t0 = Date.now();
     log(`\n▶ ${q.name}`);
     if (!trocken) {
@@ -75,7 +91,7 @@ async function main() {
     const bericht: QuellenBericht = { quelle: q.id, gefunden: 0, hinweise: [], sekunden: 0 };
     let events: RohEvent[] = [];
     try {
-      const erg = await q.holen({ holeText: (u) => holeText(u), log, bekannteUrls });
+      const erg = await q.holen({ holeText: (u) => holeText(u), log, bekannteUrls, trocken });
       events = erg.events;
       bericht.gefunden = events.length;
       bericht.hinweise = erg.hinweise;

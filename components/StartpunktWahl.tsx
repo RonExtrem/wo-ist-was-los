@@ -89,11 +89,17 @@ export function OrtSuche({
   schliessen,
   gewaehlt,
   titel = "Anderen Ort wählen",
+  oben,
+  autoFokus = true,
 }: {
   offen: boolean;
   schliessen: () => void;
   gewaehlt: (o: OrtTreffer) => void;
   titel?: string;
+  /** Zusätzliche Knöpfe über dem Suchfeld (z. B. „Auf der Karte antippen“) */
+  oben?: React.ReactNode;
+  /** Tastatur sofort öffnen (bei zusätzlichen Knöpfen lieber nicht) */
+  autoFokus?: boolean;
 }) {
   const [text, setText] = useState("");
   const [treffer, setTreffer] = useState<OrtTreffer[]>([]);
@@ -104,8 +110,8 @@ export function OrtSuche({
   const naehe = { lat: einstellungen.lat, lng: einstellungen.lng };
 
   useEffect(() => {
-    if (offen) setTimeout(() => eingabe.current?.focus(), 250);
-  }, [offen]);
+    if (offen && autoFokus) setTimeout(() => eingabe.current?.focus(), 250);
+  }, [offen, autoFokus]);
 
   const zu = () => {
     setText("");
@@ -150,6 +156,7 @@ export function OrtSuche({
                 <X className="h-6 w-6" />
               </button>
             </div>
+            {oben}
             <label className="mt-4 flex min-h-14 items-center gap-3 rounded-2xl bg-flaeche-2 px-4 ring-1 ring-linie focus-within:ring-2 focus-within:ring-see">
               <Search className="h-6 w-6 text-gedaempft" />
               <input

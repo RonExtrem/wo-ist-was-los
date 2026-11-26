@@ -54,6 +54,7 @@ export function KartenAnsicht({
   onAuswahl,
   satellit = false,
   bevorzugt = [],
+  onKartenTipp,
 }: {
   events: EventKurz[];
   mitte: { lat: number; lng: number; name: string };
@@ -61,15 +62,24 @@ export function KartenAnsicht({
   onAuswahl: (ids: string[]) => void;
   satellit?: boolean;
   bevorzugt?: string[];
+  /** Gesetzt = „Punkt wählen“-Modus: der nächste Tipp auf die Karte liefert die Stelle */
+  onKartenTipp?: ((lat: number, lng: number) => void) | null;
 }) {
   const behaelter = useRef<HTMLDivElement>(null);
   const karte = useRef<KartenMap | null>(null);
   const [geladen, setGeladen] = useState(false);
   const [fehler, setFehler] = useState(false);
   const auswahlRef = useRef(onAuswahl);
+  const tippRef = useRef(onKartenTipp);
   useEffect(() => {
     auswahlRef.current = onAuswahl;
-  }, [onAuswahl]);
+    tippRef.current = onKartenTipp;
+  }, [onAuswahl, onKartenTipp]);
+  // Im „Punkt wählen“-Modus ein Fadenkreuz zeigen
+  useEffect(() => {
+    const m = karte.current;
+    if (m) m.getCanvas().style.cursor = onKartenTipp ? "crosshair" : "";
+  }, [onKartenTipp, geladen]);
 
   // Quellenangabe nur als kleines (i) – aufgeklappt würde sie den Satelliten-Knopf verdecken
   const zuklappen = () =>
@@ -189,9 +199,13 @@ export function KartenAnsicht({
           });
 
           // Tipp auf eine Gruppe: hineinzoomen – oder, wenn alle am selben Ort sind, die Liste zeigen
+          // „Punkt wählen“: irgendwo auf die Karte tippen
+          m.on("click", (ev) => {
+            if (tippRef.current) tippRef.current(ev.lngLat.lat, ev.lngLat.lng);
+          });
           m.on("click", "gruppen", async (ev: MapLayerMouseEvent) => {
             const f = ev.features?.[0];
-            if (!f || !m) return;
+            if (!f || !m || tippRef.current) return;
             const quelle = m.getSource("events") as GeoJSONSource;
             const gruppenId = f.properties.cluster_id as number;
             const zoom = await quelle.getClusterExpansionZoom(gruppenId);
@@ -205,11 +219,11 @@ export function KartenAnsicht({
           });
           m.on("click", "punkte", (ev: MapLayerMouseEvent) => {
             const f = ev.features?.[0];
-            if (f) auswahlRef.current([String(f.properties.id)]);
+            if (f && !tippRef.current) auswahlRef.current([String(f.properties.id)]);
           });
           for (const ebene of ["gruppen", "punkte"]) {
-            m.on("mouseenter", ebene, () => m && (m.getCanvas().style.cursor = "pointer"));
-            m.on("mouseleave", ebene, () => m && (m.getCanvas().style.cursor = ""));
+            m.on("mouseenter", ebene, () => m && !tippRef.current && (m.getCanvas().style.cursor = "pointer"));
+            m.on("mouseleave", ebene, () => m && !tippRef.current && (m.getCanvas().style.cursor = ""));
           }
           zuklappen();
           setGeladen(true);
@@ -224,20 +238,21 @@ export function KartenAnsicht({
       abgebrochen = true;
       m?.remove();
       karte.current = null;
+      setGeladen(false);
     };
   }, []);
 
   // Punkte aktualisieren
   useEffect(() => {
     const m = karte.current;
-    if (!geladen || !m) return;
+    if (!geladen || !m || !m.getSource("events")) return;
     (m.getSource("events") as GeoJSONSource).setData(alsGeoJson(events, bevorzugt));
   }, [geladen, events, bevorzugt]);
 
   // Satellit ein/aus: Bild zeigen, Flächen der normalen Karte (Wald, Wiesen, Häuser …) ausblenden
   useEffect(() => {
     const m = karte.current;
-    if (!geladen || !m) return;
+    if (!geladen || !m || !m.getSource("events")) return;
     m.setLayoutProperty("satellit", "visibility", satellit ? "visible" : "none");
     for (const ebene of m.getStyle().layers) {
       if (UNSERE_EBENEN.has(ebene.id)) continue;
@@ -255,7 +270,7 @@ export function KartenAnsicht({
   // Startpunkt + Umkreis zeichnen und passend hinzoomen
   useEffect(() => {
     const m = karte.current;
-    if (!geladen || !m) return;
+    if (!geladen || !m || !m.getSource("events")) return;
     (m.getSource("umkreis") as GeoJSONSource).setData(
       umkreisKm ? kreis(mitte.lat, mitte.lng, umkreisKm) : { type: "FeatureCollection", features: [] }
     );
@@ -264,17 +279,22 @@ export function KartenAnsicht({
       properties: {},
       geometry: { type: "Point", coordinates: [mitte.lng, mitte.lat] },
     });
-    const km = umkreisKm ?? 150;
-    const dLat = km / 111.32;
-    const dLng = km / (111.32 * Math.cos((mitte.lat * Math.PI) / 180));
+    const abstand = { padding: { top: 170, bottom: 40, left: 20, right: 20 }, duration: 800 };
+    if (umkreisKm == null) {
+      // „Überall“: ganz Österreich mit den Grenzgebieten
+      m.fitBounds([[9.5, 45.6], [17.2, 49.05]], abstand);
+      return;
+    }
+    const dLat = umkreisKm / 111.32;
+    const dLng = umkreisKm / (111.32 * Math.cos((mitte.lat * Math.PI) / 180));
     m.fitBounds(
       [
         [mitte.lng - dLng, mitte.lat - dLat],
         [mitte.lng + dLng, mitte.lat + dLat],
       ],
-      { padding: { top: 150, bottom: 40, left: 20, right: 20 }, duration: 800 }
+      abstand
     );
-  }, [geladen, mitte.lat, mitte.lng, mitte.name, umkreisKm]);
+  }, [geladen, mitte.lat, mitte.lng, umkreisKm]);
 
   return (
     <div className="absolute inset-0">

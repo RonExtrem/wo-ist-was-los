@@ -118,6 +118,29 @@ async function postleitzahl(plz: string): Promise<Treffer[]> {
 // Ortssuche für „Anderer Ort…“ und den Wohnort: auch kleine Ortschaften, Tippfehler und Postleitzahlen
 export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
+
+  // Umgekehrt: Punkt auf der Karte → Name des Orts (für „Auf der Karte antippen“)
+  if (p.get("rueck") === "1") {
+    const rLat = Number(p.get("lat"));
+    const rLng = Number(p.get("lng"));
+    if (!Number.isFinite(rLat) || !Number.isFinite(rLng)) return Response.json({ name: null });
+    try {
+      const url = new URL("https://nominatim.openstreetmap.org/reverse");
+      url.searchParams.set("lat", rLat.toFixed(4));
+      url.searchParams.set("lon", rLng.toFixed(4));
+      url.searchParams.set("format", "jsonv2");
+      url.searchParams.set("zoom", "12");
+      url.searchParams.set("accept-language", "de");
+      const res = await fetch(url, { headers: { "User-Agent": KENNUNG }, signal: AbortSignal.timeout(6_000) });
+      const d = (await res.json()) as { name?: string; address?: Record<string, string> };
+      const a = d.address ?? {};
+      const name = a.village ?? a.town ?? a.city ?? a.municipality ?? a.suburb ?? d.name ?? a.county ?? null;
+      return Response.json({ name });
+    } catch {
+      return Response.json({ name: null });
+    }
+  }
+
   const roh = p.get("q")?.trim().replace(/\s+/g, " ").slice(0, 100) ?? "";
   if (roh.length < 2) return Response.json({ orte: [] });
   const lat = Number(p.get("lat")) || 46.75;

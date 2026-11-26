@@ -14,6 +14,7 @@ export interface EventAbfrage {
   gratis?: boolean;
   q?: string;
   neu?: number;
+  max?: number;
 }
 
 interface Ergebnis {
@@ -28,7 +29,7 @@ export function useEvents(abfrage: EventAbfrage | null) {
 
   const schluessel = abfrage
     ? [abfrage.lat.toFixed(3), abfrage.lng.toFixed(3), abfrage.radius, abfrage.von.toISOString().slice(0, 13), abfrage.bis.toISOString().slice(0, 13),
-       abfrage.kat?.join(",") ?? "", abfrage.land?.join(",") ?? "", abfrage.gratis ? 1 : 0, abfrage.q ?? "", abfrage.neu ?? ""].join("|")
+       abfrage.kat?.join(",") ?? "", abfrage.land?.join(",") ?? "", abfrage.gratis ? 1 : 0, abfrage.q ?? "", abfrage.neu ?? "", abfrage.max ?? ""].join("|")
     : null;
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export function useEvents(abfrage: EventAbfrage | null) {
     if (abfrage.gratis) p.set("gratis", "1");
     if (abfrage.q) p.set("q", abfrage.q);
     if (abfrage.neu) p.set("neu", String(abfrage.neu));
+    if (abfrage.max) p.set("max", String(abfrage.max));
     fetch(`/api/events?${p}`, { signal: ctrl.signal })
       .then(async (r) => {
         if (!r.ok) throw new Error(`Fehler ${r.status}`);

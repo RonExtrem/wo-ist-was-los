@@ -15,12 +15,15 @@ concurrency:
 jobs:
   sammeln:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Ganz Österreich: der erste Lauf dauert lange (viele neue Orte), danach deutlich kürzer.
+    # Der Sammler hört selbst nach MAX_MINUTEN auf, neue Quellen anzufangen.
+    timeout-minutes: 350
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
       TZ: Europe/Vienna
+      MAX_MINUTEN: 320
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

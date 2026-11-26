@@ -78,11 +78,18 @@ export function abstandKm(a: { lat: number; lng: number }, b: { lat: number; lng
   return 2 * r * Math.asin(Math.sqrt(x));
 }
 
-/** Mittelpunkte für die 150-km-Grenze: Klagenfurt und Spittal an der Drau (Papas Wohnort). */
 export const KLAGENFURT = { lat: 46.6247, lng: 14.3053 };
 export const SPITTAL = { lat: 46.7989, lng: 13.4955 };
-export const SAMMEL_RADIUS_KM = 150;
+
+/**
+ * Sammelgebiet: ganz Österreich (Rechteck um die Landesgrenzen) und die Grenzgebiete
+ * Südtirol, Belluno/Cortina, Friaul mit Triest und Slowenien – Venedig und weiter südlich nicht.
+ */
+const GEBIETE: { west: number; ost: number; sued: number; nord: number }[] = [
+  { west: 9.5, ost: 17.2, sued: 46.35, nord: 49.05 }, // Österreich
+  { west: 10.4, ost: 16.6, sued: 45.55, nord: 46.4 }, // Südtirol, Belluno, Friaul, Triest, Slowenien
+];
 
 export function imSammelgebiet(p: { lat: number; lng: number }): boolean {
-  return abstandKm(p, KLAGENFURT) <= SAMMEL_RADIUS_KM || abstandKm(p, SPITTAL) <= SAMMEL_RADIUS_KM;
+  return GEBIETE.some((g) => p.lng >= g.west && p.lng <= g.ost && p.lat >= g.sued && p.lat <= g.nord);
 }

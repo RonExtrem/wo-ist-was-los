@@ -40,6 +40,8 @@ export interface EventFilter {
   suche?: string;
   /** Nur Events, die in den letzten X Tagen neu dazugekommen sind */
   neuTage?: number;
+  /** Höchstzahl der Ergebnisse (Karte braucht mehr als die Liste) */
+  max?: number;
 }
 
 export const LAENDER: Record<string, { name: string; flagge: string }> = {

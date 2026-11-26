@@ -51,4 +51,6 @@ export interface Kontext {
   log(text: string): void;
   /** URLs, die schon in der Datenbank stehen (zum Sparen von Detail-Abrufen). */
   bekannteUrls: Set<string>;
+  /** Trockenlauf: nichts in die Datenbank schreiben */
+  trocken?: boolean;
 }

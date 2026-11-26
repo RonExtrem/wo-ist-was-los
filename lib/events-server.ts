@@ -49,7 +49,7 @@ export async function ladeEvents(f: EventFilter): Promise<EventKurz[]> {
         AND ($9::text IS NULL OR e.titel ILIKE $9 OR e.ort_name ILIKE $9 OR e.kurzbeschreibung ILIKE $9)
         AND ($10::int IS NULL OR e.erstellt >= now() - make_interval(days => $10::int))
       ORDER BY e.beginn, entfernung_km
-      LIMIT ${MAX_ERGEBNISSE}`,
+      LIMIT ${Math.min(Math.max(Math.round(f.max ?? MAX_ERGEBNISSE), 1), 3000)}`,
     [
       f.lat,
       f.lng,
