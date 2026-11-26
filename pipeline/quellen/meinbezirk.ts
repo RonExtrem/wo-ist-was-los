@@ -223,6 +223,18 @@ function zeitraeume(
     .slice(0, 3);
 }
 
+/** Bundesland aus der Postleitzahl – nur wo sie eindeutig ist (sonst null = Bundesland der Liste). */
+export function bundeslandAusPlz(plz: string | undefined): string | null {
+  const n = Number(String(plz ?? "").trim());
+  if (!Number.isInteger(n) || n < 1000 || n > 9999) return null;
+  if (n < 2000) return "Wien";
+  if (n >= 6700 && n < 7000) return "Vorarlberg";
+  if (n >= 7000 && n < 8000) return "Burgenland";
+  if (n >= 9900) return "Tirol"; // Osttirol
+  if (n >= 9000) return "Kärnten";
+  return null;
+}
+
 /** Kleine Prüfzahl aus der Adresse – verteilt die Wochen-Auffrischung gleichmäßig auf die Tage. */
 function pruefzahl(text: string): number {
   let h = 0;
@@ -311,10 +323,11 @@ export function meinbezirkQuelle(land: Bundesland): Quelle {
 
         const termine = lds
           .filter((l) => l.startDate)
-          .map((l) => ({
-            beginn: new Date(l.startDate!),
-            ende: l.endDate ? new Date(l.endDate) : undefined,
-          }))
+          .map((l) => {
+            const ende = l.endDate ? new Date(l.endDate) : undefined;
+            // Kaputtes Enddatum (kam in Wien vor) → einfach ohne Ende, statt die ganze Quelle abzubrechen
+            return { beginn: new Date(l.startDate!), ende: ende && !Number.isNaN(ende.getTime()) ? ende : undefined };
+          })
           .filter((t) => !Number.isNaN(t.beginn.getTime()));
 
         const beschreibung =
@@ -370,7 +383,8 @@ export function meinbezirkQuelle(land: Bundesland): Quelle {
               .join(", "),
             adresse,
             land: "AT",
-            region: land.name,
+            // Manche Bundesland-Listen enthalten auch Events aus dem Nachbarland (z. B. NÖ-Liste mit Wien) → Postleitzahl entscheidet
+            region: bundeslandAusPlz(a?.postalCode) ?? land.name,
             kategorien: [...kategorien],
             bildUrl: bild,
             freiluft: freiluftAusText(text),

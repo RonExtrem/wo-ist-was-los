@@ -30,13 +30,7 @@ export const REGIONEN: Record<string, { titel: string; liste: Region[] }> = {
       { id: "Venetien", name: "Belluno & Cortina", db: ["Venetien"] },
     ],
   },
-  SI: {
-    titel: "Regionen",
-    liste: [
-      { id: "Oberkrain", name: "Oberkrain", db: ["Oberkrain"] },
-      { id: "Slowenisch-Kärnten", name: "Slowenisch-Kärnten", db: ["Slowenisch-Kärnten"] },
-    ],
-  },
+  // Slowenien bewusst ohne Aufteilung: dort gibt es keine Bundesländer und nur wenige Veranstaltungen
 };
 
 /** Zu welchem Land gehört eine Region-ID? */

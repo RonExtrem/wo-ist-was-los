@@ -130,8 +130,9 @@ export function SuchSeite() {
   const zahlenSchluessel =
     offen === "wo" && abfrage
       ? new URLSearchParams({
-          von: abfrage.von.toISOString(),
-          bis: abfrage.bis.toISOString(),
+          // auf die Stunde gerundet – sonst ändert sich der Schlüssel bei jedem Antippen, die Zahlen verschwinden kurz und die Knöpfe springen
+          von: abfrage.von.toISOString().slice(0, 13) + ":00:00Z",
+          bis: abfrage.bis.toISOString().slice(0, 13) + ":00:00Z",
           kat: kat.join(","),
           gratis: gratis ? "1" : "",
           q,
@@ -150,7 +151,8 @@ export function SuchSeite() {
       .catch(() => {});
     return () => ctrl.abort();
   }, [zahlenSchluessel]);
-  const z = zahlen?.schluessel === zahlenSchluessel ? zahlen.werte : undefined;
+  // Alte Zahlen stehen lassen, bis die neuen da sind (kein Springen)
+  const z = zahlen?.werte;
 
   const landUmschalten = (id: string) => {
     const neuLand = umschalten("land", id);
@@ -274,7 +276,7 @@ export function SuchSeite() {
       {offen === "wo" && (
         <div className="mt-3 rounded-3xl bg-flaeche-2 p-4">
           <p className="font-semibold">In welchem Land?</p>
-          <p className="text-[0.9rem] text-gedaempft">Nichts angetippt = alle Länder. Danach kannst du einzelne Bundesländer wählen.</p>
+          <p className="text-[0.9rem] text-gedaempft">Nichts angetippt = alle Länder. Bei Österreich und Italien kannst du danach einzelne Bundesländer bzw. Regionen wählen.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(LAENDER).map(([id, l]) => (
               <Chip key={id} an={land.includes(id)} onClick={() => landUmschalten(id)}>
