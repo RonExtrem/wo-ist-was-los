@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
   LoaderCircle,
@@ -167,7 +168,16 @@ function UntenBlatt({
 const zeile =
   "flex min-h-14 w-full items-center gap-3 rounded-2xl px-3 text-left text-lg font-semibold hover:bg-flaeche-2";
 
+// useSearchParams braucht eine Suspense-Grenze
 export default function KartenSeite() {
+  return (
+    <Suspense fallback={null}>
+      <KartenInhalt />
+    </Suspense>
+  );
+}
+
+function KartenInhalt() {
   const { bereit, startpunkt, setzeStartpunkt, einstellungen } = useApp();
   const [zeit, setZeit] = useState<ZeitId>("monat");
   const [umkreisWahl, setUmkreis] = useState<Umkreis | null>(null);
@@ -264,8 +274,30 @@ export default function KartenSeite() {
   );
   // Bei einer Gruppe merkt sich die Seite, wie man genau auf diese Punkte zoomt
   const [zoomen, setZoomen] = useState<(() => void) | null>(null);
+  // Die Liste steht als „?liste=1“ in der Adresse: Zurück-Taste schließt sie,
+  // und wer über die untere Leiste zur Karte zurückkommt (Adresse ohne „liste“), sieht sie nicht mehr
+  const listeInAdresse = useSearchParams().has("liste");
+  const selbstGeoeffnet = useRef(false);
+  const listeSchliessen = useCallback(() => {
+    setAuswahl([]);
+    if (!new URLSearchParams(window.location.search).has("liste")) return;
+    if (selbstGeoeffnet.current) {
+      selbstGeoeffnet.current = false;
+      window.history.back();
+    } else {
+      const p = new URLSearchParams(window.location.search);
+      p.delete("liste");
+      window.history.replaceState(null, "", `${window.location.pathname}${p.size ? `?${p}` : ""}`);
+    }
+  }, []);
   const waehle = useCallback((ids: string[], zoom?: () => void) => {
     setAuswahl(ids);
+    const p = new URLSearchParams(window.location.search);
+    if (ids.length && !p.has("liste")) {
+      p.set("liste", "1");
+      window.history.pushState(null, "", `${window.location.pathname}?${p}`);
+      selbstGeoeffnet.current = true;
+    }
     setZoomen(() => zoom ?? null);
     if (zoom) setTippGesehen(true);
   }, [setTippGesehen]);
@@ -482,7 +514,7 @@ export default function KartenSeite() {
         )}
 
         {/* Ausgewählte Veranstaltung(en) unten */}
-        {gewaehlt.length > 0 && (
+        {listeInAdresse && gewaehlt.length > 0 && (
           <div className="absolute inset-x-0 bottom-0 z-10 flex max-h-[80%] flex-col overflow-hidden rounded-t-3xl bg-background shadow-[0_-8px_30px_rgba(0,0,0,0.25)]">
             {/* Kopf: fest und undurchsichtig – nur die Liste darunter scrollt */}
             <div className="shrink-0 border-b border-linie px-4 pb-2 pt-1.5">
@@ -495,7 +527,7 @@ export default function KartenSeite() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setAuswahl([])}
+                  onClick={listeSchliessen}
                   aria-label="Schließen"
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-flaeche-2"
                 >
@@ -507,7 +539,7 @@ export default function KartenSeite() {
                   type="button"
                   onClick={() => {
                     zoomen();
-                    setAuswahl([]);
+                    listeSchliessen();
                   }}
                   className="mt-1 flex min-h-11 items-center gap-2 rounded-full bg-see-zart px-4 text-[0.95rem] font-semibold text-see"
                 >
