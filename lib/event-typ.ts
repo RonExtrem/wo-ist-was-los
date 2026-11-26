@@ -38,6 +38,8 @@ export interface EventFilter {
   laender?: string[];
   nurGratis?: boolean;
   suche?: string;
+  /** Nur Events, die in den letzten X Tagen neu dazugekommen sind */
+  neuTage?: number;
 }
 
 export const LAENDER: Record<string, { name: string; flagge: string }> = {

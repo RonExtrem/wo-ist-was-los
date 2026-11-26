@@ -47,6 +47,7 @@ export async function ladeEvents(f: EventFilter): Promise<EventKurz[]> {
         AND ($7::text[] IS NULL OR e.land = ANY($7::text[]))
         AND (NOT $8::boolean OR e.gratis = true)
         AND ($9::text IS NULL OR e.titel ILIKE $9 OR e.ort_name ILIKE $9 OR e.kurzbeschreibung ILIKE $9)
+        AND ($10::int IS NULL OR e.erstellt >= now() - make_interval(days => $10::int))
       ORDER BY e.beginn, entfernung_km
       LIMIT ${MAX_ERGEBNISSE}`,
     [
@@ -59,6 +60,7 @@ export async function ladeEvents(f: EventFilter): Promise<EventKurz[]> {
       f.laender?.length ? f.laender : null,
       !!f.nurGratis,
       suche,
+      f.neuTage ? Math.min(Math.max(Math.round(f.neuTage), 1), 30) : null,
     ]
   );
   return (rows as Zeile[]).map(zuKurz);

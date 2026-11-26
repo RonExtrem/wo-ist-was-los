@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Heart, LoaderCircle } from "lucide-react";
+import { Heart, LoaderCircle, Plus } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
 import { AnsichtWahl, EventListe } from "@/components/EventListe";
 import type { EventKurz } from "@/lib/event-typ";
@@ -30,6 +30,12 @@ export default function MeineEvents() {
     <main className="mx-auto w-full max-w-xl flex-1 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
       <h1 className="font-titel text-[2.1rem] leading-tight">Meine Events</h1>
       <p className="mt-1 text-gedaempft">Alles, was du mit dem Herz gemerkt hast.</p>
+      <Link
+        href="/teilen"
+        className="mt-4 flex min-h-12 w-fit items-center gap-2 rounded-full bg-flaeche px-4 font-semibold text-see ring-1 ring-linie hover:bg-see-zart"
+      >
+        <Plus className="h-5 w-5" /> Veranstaltung selbst eintragen
+      </Link>
 
       {events === null ? (
         <div className="flex items-center justify-center gap-3 py-16 text-gedaempft">

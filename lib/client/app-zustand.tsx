@@ -3,6 +3,7 @@
 // Zentraler Zustand im Browser: Geräte-Schlüssel, Einstellungen, Startpunkt, Favoriten.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { STANDARD_INTERESSEN } from "@/lib/kategorien";
+import { pushMoeglich } from "./push";
 
 export interface Einstellungen {
   wohnortName: string;
@@ -14,6 +15,12 @@ export interface Einstellungen {
   theme: "auto" | "hell" | "dunkel";
   /** Wie Veranstaltungen angezeigt werden: große Karten, Kacheln (2 nebeneinander) oder kompakte Liste */
   ansicht: Ansicht;
+  /** Push: an gemerkte Veranstaltungen erinnern (Vortag + am Tag) */
+  erinnern: boolean;
+  /** Push „Neu für dich“: täglich, seltener (2× pro Woche) oder aus */
+  neuFuerDich: "taeglich" | "seltener" | "aus";
+  /** Push am Donnerstag: Wochenend-Tipp */
+  wochenendTipp: boolean;
 }
 
 export type Ansicht = "gross" | "kacheln" | "liste";
@@ -34,6 +41,9 @@ const STANDARD: Einstellungen = {
   schriftgroesse: "gross",
   theme: "auto",
   ansicht: "gross",
+  erinnern: true,
+  neuFuerDich: "taeglich",
+  wochenendTipp: true,
 };
 
 const SCHLUESSEL = { token: "wiwl-token", einst: "wiwl-einstellungen", start: "wiwl-startpunkt", fav: "wiwl-favoriten" };
@@ -63,6 +73,9 @@ interface AppZustand {
   favoriten: Set<string>;
   merken: (eventId: string) => void;
   api: (pfad: string, init?: RequestInit) => Promise<Response>;
+  /** Nach dem ersten Herz einmal fragen, ob erinnert werden soll */
+  pushFrage: boolean;
+  schliessePushFrage: () => void;
 }
 
 const Ctx = createContext<AppZustand | null>(null);
@@ -72,6 +85,7 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
   const [einstellungen, setEinst] = useState<Einstellungen>(STANDARD);
   const [startpunkt, setStart] = useState<Startpunkt>({ art: "daheim", name: STANDARD.wohnortName, lat: STANDARD.lat, lng: STANDARD.lng });
   const [favoriten, setFav] = useState<Set<string>>(new Set());
+  const [pushFrage, setPushFrage] = useState(false);
   const tokenRef = useRef<string | null>(null);
   const tokenPromise = useRef<Promise<string | null> | null>(null);
 
@@ -166,6 +180,13 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
   const merken = useCallback(
     (eventId: string) => {
       setFav((alt) => {
+        if (!alt.has(eventId) && pushMoeglich() && Notification.permission === "default") {
+          try {
+            if (!localStorage.getItem("wiwl-push-gefragt")) setTimeout(() => setPushFrage(true), 600);
+          } catch {
+            /* egal */
+          }
+        }
         const neu = new Set(alt);
         const istDrin = neu.has(eventId);
         if (istDrin) neu.delete(eventId);
@@ -181,9 +202,14 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
     [api]
   );
 
+  const schliessePushFrage = useCallback(() => {
+    setPushFrage(false);
+    schreib("wiwl-push-gefragt", true);
+  }, []);
+
   const wert = useMemo(
-    () => ({ bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api }),
-    [bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api]
+    () => ({ bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api, pushFrage, schliessePushFrage }),
+    [bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api, pushFrage, schliessePushFrage]
   );
   return <Ctx.Provider value={wert}>{children}</Ctx.Provider>;
 }

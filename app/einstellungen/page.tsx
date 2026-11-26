@@ -5,6 +5,9 @@ import { House, Check, Sun, Moon, SunMoon } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
 import { OrtSuche } from "@/components/StartpunktWahl";
 import { AnsichtWahl } from "@/components/EventListe";
+import { Benachrichtigungen } from "./Benachrichtigungen";
+import { Uebertragung } from "./Uebertragung";
+import Link from "next/link";
 import { KATEGORIE_ICON } from "@/components/KategorieBild";
 import { KATEGORIEN } from "@/lib/kategorien";
 import { ZurueckKnopf } from "../event/[id]/DetailAktionen";
@@ -95,6 +98,10 @@ export default function Einstellungen() {
         </div>
       </Karte>
 
+      <Karte titel="Benachrichtigungen" text="Erinnerungen und Tipps direkt aufs Handy.">
+        <Benachrichtigungen />
+      </Karte>
+
       <Karte titel="Schriftgröße">
         <div className="flex flex-col gap-2">
           {(
@@ -137,6 +144,16 @@ export default function Einstellungen() {
           </Auswahl>
         </div>
       </Karte>
+
+      <Karte titel="Neues Handy?" text="So nimmst du Gemerktes und Einstellungen mit.">
+        <Uebertragung />
+      </Karte>
+
+      <p className="mb-6 mt-8 text-center text-[0.85rem] text-gedaempft">
+        <Link href="/status" className="underline-offset-4 hover:underline">
+          Quellen-Status
+        </Link>
+      </p>
 
       <p className="mt-8 pb-4 text-center text-[0.85rem] text-gedaempft">
         „Wo is wos los?“ · Veranstaltungen aus Kärnten, Slowenien und Friaul.

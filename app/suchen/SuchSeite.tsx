@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { LoaderCircle, Search, SlidersHorizontal, X, RotateCcw } from "lucide-react";
+import { LoaderCircle, Search, SlidersHorizontal, X, RotateCcw, Sparkles } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
 import { useEvents } from "@/lib/client/use-events";
 import { AnsichtWahl, EventListe } from "@/components/EventListe";
@@ -69,6 +69,7 @@ export function SuchSeite() {
   const land = useMemo(() => landText.split(",").filter(Boolean), [landText]);
   const gratis = params.get("gratis") === "1";
   const q = params.get("q") ?? "";
+  const neu = Number(params.get("neu")) || 0;
   const [suchText, setSuchText] = useState(q);
 
   const setze = (aenderung: Record<string, string | null>) => {
@@ -98,8 +99,9 @@ export function SuchSeite() {
       land,
       gratis,
       q,
+      neu,
     };
-  }, [bereit, startpunkt.lat, startpunkt.lng, zeit, radius, kat, land, gratis, q]);
+  }, [bereit, startpunkt.lat, startpunkt.lng, zeit, radius, kat, land, gratis, q, neu]);
   const { events, fehler, laedt } = useEvents(abfrage);
 
   // Nach Tagen gruppieren; laufende mehrtägige Events kommen oben in „Läuft gerade“
@@ -150,6 +152,17 @@ export function SuchSeite() {
           )}
         </label>
       </form>
+
+      {neu > 0 && (
+        <button
+          type="button"
+          onClick={() => setze({ neu: null })}
+          className="mt-4 flex min-h-12 items-center gap-2 rounded-full bg-abendsonne px-4 font-semibold text-white shadow"
+        >
+          <Sparkles className="h-5 w-5" /> Nur neue der letzten {neu === 1 ? "24 Stunden" : `${neu} Tage`}
+          <X className="h-5 w-5" aria-label="Filter entfernen" />
+        </button>
+      )}
 
       <div className="mt-5">
         <StartpunktWahl />

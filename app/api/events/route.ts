@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
       laender: liste(p.get("land")),
       nurGratis: p.get("gratis") === "1",
       suche: p.get("q")?.slice(0, 80),
+      neuTage: zahl(p.get("neu"), null) ?? undefined,
     });
     return Response.json({ events }, { headers: { "Cache-Control": "private, max-age=120" } });
   } catch (err) {
