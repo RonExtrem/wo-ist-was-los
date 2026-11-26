@@ -92,9 +92,9 @@ export function EventKarte({
   // ── Liste: kompakt, viele auf einen Blick ──
   if (ansicht === "liste") {
     return huelle(
-      <div className="flex items-center gap-3 py-3 pl-3 pr-14">
+      <div className={`flex items-center gap-3 pl-3 pr-14 ${mitBild ? "py-2.5" : "py-3"}`}>
         {mitBild ? (
-          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl">
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl">
             <Bild event={event} kat={hauptKat} className="h-full w-full" />
           </div>
         ) : zeigeTag ? (
@@ -105,7 +105,7 @@ export function EventKarte({
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h3 className={`${titelKlasse} line-clamp-2 text-[1.1rem] leading-snug`}>{event.titel}</h3>
+          <h3 className={`${titelKlasse} line-clamp-2 leading-snug ${mitBild ? "text-[1.02rem]" : "text-[1.1rem]"}`}>{event.titel}</h3>
           <p className="mt-0.5 truncate text-[0.9rem] text-gedaempft">
             {laeuft && event.ende ? (
               <strong className="text-laerche">

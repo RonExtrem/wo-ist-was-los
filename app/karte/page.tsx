@@ -483,10 +483,10 @@ export default function KartenSeite() {
 
         {/* Ausgewählte Veranstaltung(en) unten */}
         {gewaehlt.length > 0 && (
-          <div className="absolute inset-x-0 bottom-0 z-10 max-h-[55%] overflow-y-auto rounded-t-3xl bg-background/97 px-4 pb-4 pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.18)] backdrop-blur">
-            {/* Kopf: Titel + Schließen in einer Zeile, „Auf Karte zeigen“ darunter – passt auch bei großer Schrift */}
-            <div className="sticky top-0 z-10 -mx-4 bg-background/97 px-4 pb-2 pt-1">
-              <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-linie" />
+          <div className="absolute inset-x-0 bottom-0 z-10 flex max-h-[80%] flex-col overflow-hidden rounded-t-3xl bg-background shadow-[0_-8px_30px_rgba(0,0,0,0.25)]">
+            {/* Kopf: fest und undurchsichtig – nur die Liste darunter scrollt */}
+            <div className="shrink-0 border-b border-linie px-4 pb-2 pt-1.5">
+              <div className="mx-auto mb-1 h-1.5 w-12 rounded-full bg-linie" />
               <div className="flex items-center gap-3">
                 <p className="min-w-0 flex-1 truncate font-titel text-xl leading-tight">
                   {gewaehlt.length === 1
@@ -509,13 +509,13 @@ export default function KartenSeite() {
                     zoomen();
                     setAuswahl([]);
                   }}
-                  className="mt-2 flex min-h-12 items-center gap-2 rounded-full bg-see-zart px-4 text-[0.95rem] font-semibold text-see"
+                  className="mt-1 flex min-h-11 items-center gap-2 rounded-full bg-see-zart px-4 text-[0.95rem] font-semibold text-see"
                 >
                   <ZoomIn className="h-5 w-5 shrink-0" /> Auf der Karte zeigen
                 </button>
               )}
             </div>
-            <ul className="flex flex-col gap-2">
+            <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-4 pb-4 pt-3">
               {gewaehlt.map((e, i) => (
                 <EventKarte key={e.id} event={e} index={i} ansicht="liste" mitBild />
               ))}
