@@ -1,6 +1,7 @@
 import "server-only";
 import { sql } from "./db";
 import type { EventDetail, EventFilter, EventKurz } from "./event-typ";
+import { regionenAufloesen, regionId } from "./regionen";
 
 type Zeile = Record<string, unknown>;
 
@@ -32,6 +33,7 @@ const MAX_ERGEBNISSE = 400;
 export async function ladeEvents(f: EventFilter): Promise<EventKurz[]> {
   const db = sql();
   const suche = f.suche?.trim() ? `%${f.suche.trim()}%` : null;
+  const reg = regionenAufloesen(f.regionen ?? []);
   const rows = await db.query(
     `SELECT e.id, e.titel, e.kurzbeschreibung, e.beginn, e.ende, e.ganztaegig, e.ort_name, e.land, e.region,
             e.kategorien, e.gratis, e.bild_url, e.sicherheit, e.status,
@@ -48,6 +50,7 @@ export async function ladeEvents(f: EventFilter): Promise<EventKurz[]> {
         AND (NOT $8::boolean OR e.gratis = true)
         AND ($9::text IS NULL OR e.titel ILIKE $9 OR e.ort_name ILIKE $9 OR e.kurzbeschreibung ILIKE $9)
         AND ($10::int IS NULL OR e.erstellt >= now() - make_interval(days => $10::int))
+        AND ($11::text[] IS NULL OR e.region = ANY($11::text[]) OR e.land <> ALL($12::text[]))
       ORDER BY e.beginn, entfernung_km
       LIMIT ${Math.min(Math.max(Math.round(f.max ?? MAX_ERGEBNISSE), 1), 3000)}`,
     [
@@ -61,9 +64,44 @@ export async function ladeEvents(f: EventFilter): Promise<EventKurz[]> {
       !!f.nurGratis,
       suche,
       f.neuTage ? Math.min(Math.max(Math.round(f.neuTage), 1), 30) : null,
+      reg.db.length ? reg.db : null,
+      reg.laender,
     ]
   );
   return (rows as Zeile[]).map(zuKurz);
+}
+
+/** Wie viele Events pro Bundesland/Region (ohne Umkreis – das Bundesland ersetzt den Umkreis). */
+export async function zaehleRegionen(f: Omit<EventFilter, "lat" | "lng" | "radiusKm" | "laender" | "regionen" | "max">): Promise<Record<string, number>> {
+  const suche = f.suche?.trim() ? `%${f.suche.trim()}%` : null;
+  const rows = (await sql().query(
+    `SELECT e.land, e.region, count(*)::int AS n
+       FROM events e
+      WHERE e.status <> 'verschwunden'
+        AND e.geo IS NOT NULL
+        AND coalesce(e.ende, e.beginn) >= $1::timestamptz
+        AND e.beginn <= $2::timestamptz
+        AND ($3::text[] IS NULL OR e.kategorien && $3::text[])
+        AND (NOT $4::boolean OR e.gratis = true)
+        AND ($5::text IS NULL OR e.titel ILIKE $5 OR e.ort_name ILIKE $5 OR e.kurzbeschreibung ILIKE $5)
+        AND ($6::int IS NULL OR e.erstellt >= now() - make_interval(days => $6::int))
+      GROUP BY 1, 2`,
+    [
+      f.von,
+      f.bis,
+      f.kategorien?.length ? f.kategorien : null,
+      !!f.nurGratis,
+      suche,
+      f.neuTage ? Math.min(Math.max(Math.round(f.neuTage), 1), 30) : null,
+    ]
+  )) as { land: string; region: string | null; n: number }[];
+  const zahlen: Record<string, number> = {};
+  for (const r of rows) {
+    zahlen[r.land] = (zahlen[r.land] ?? 0) + r.n;
+    const id = regionId(r.land, r.region);
+    if (id) zahlen[id] = (zahlen[id] ?? 0) + r.n;
+  }
+  return zahlen;
 }
 
 export async function ladeEvent(id: string): Promise<EventDetail | null> {

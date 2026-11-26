@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { LoaderCircle, SlidersHorizontal, X, RotateCcw, Sparkles } from "lucide-react";
+import { ChevronDown, LoaderCircle, MapPin, RotateCcw, Shapes, Sparkles, X } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
 import { useEvents } from "@/lib/client/use-events";
 import { AnsichtWahl, EventListe } from "@/components/EventListe";
@@ -11,6 +11,7 @@ import { SuchFeld } from "@/components/SuchFeld";
 import { KATEGORIE_ICON } from "@/components/KategorieBild";
 import { KATEGORIEN } from "@/lib/kategorien";
 import { LAENDER, type EventKurz } from "@/lib/event-typ";
+import { REGIONEN, landVonRegion } from "@/lib/regionen";
 import { laeuftGerade, tagUeberschrift, wienTag, zeitfenster } from "@/lib/datum";
 
 const ZEITEN = [
@@ -23,6 +24,30 @@ const ZEITEN = [
 ] as const;
 type ZeitId = (typeof ZEITEN)[number]["id"];
 const UMKREISE = ["10", "25", "50", "100", "150", "alle"] as const;
+
+/** Kleine Zahl im Chip (wie viele Veranstaltungen) – 0 bleibt sichtbar, aber blass */
+function Zahl({ n, an }: { n: number | undefined; an: boolean }) {
+  if (n == null) return null;
+  return <span className={`text-[0.85rem] font-bold ${an ? "text-white/85" : n === 0 ? "text-gedaempft/60" : "text-gedaempft"}`}>{n}</span>;
+}
+
+/** Knopf, der einen Filter-Bereich auf- und zuklappt */
+function Klapper({ offen, onClick, icon: Icon, text, anzahl }: { offen: boolean; onClick: () => void; icon: typeof MapPin; text: string; anzahl: number }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={offen}
+      className={`flex min-h-12 items-center gap-2 rounded-full px-4 font-semibold ring-1 transition-colors ${
+        offen ? "bg-see-zart text-see ring-see" : "bg-flaeche ring-linie hover:bg-see-zart"
+      }`}
+    >
+      <Icon className="h-5 w-5" /> {text}
+      {anzahl > 0 && <span className="rounded-full bg-see px-2 text-[0.85rem] text-white">{anzahl}</span>}
+      <ChevronDown className={`h-4 w-4 transition-transform ${offen ? "rotate-180" : ""}`} />
+    </button>
+  );
+}
 
 function Chip({ an, onClick, children }: { an: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -53,15 +78,17 @@ export function SuchSeite() {
   const params = useSearchParams();
   const router = useRouter();
   const pfad = usePathname();
-  const [mehr, setMehr] = useState(false);
+  const [offen, setOffen] = useState<"themen" | "wo" | null>(null);
 
   // Filter stehen in der Adresse → „Alle“-Links der Startseite funktionieren, Zurück-Knopf auch
   const zeit = (ZEITEN.find((z) => z.id === params.get("zeit"))?.id ?? "monat") as ZeitId;
   const radius = (params.get("radius") ?? String(einstellungen.umkreisKm)) as string;
   const katText = params.get("kat") ?? "";
   const landText = params.get("land") ?? "";
+  const regionText = params.get("region") ?? "";
   const kat = useMemo(() => katText.split(",").filter(Boolean), [katText]);
   const land = useMemo(() => landText.split(",").filter(Boolean), [landText]);
+  const region = useMemo(() => regionText.split(",").filter(Boolean), [regionText]);
   const gratis = params.get("gratis") === "1";
   const q = params.get("q") ?? "";
   const neu = Number(params.get("neu")) || 0;
@@ -75,7 +102,7 @@ export function SuchSeite() {
     }
     router.replace(`${pfad}?${neu}`, { scroll: false });
   };
-  const umschalten = (feld: "kat" | "land", wert: string) => {
+  const umschalten = (feld: "kat" | "land" | "region", wert: string) => {
     const liste = (new URLSearchParams(window.location.search).get(feld) ?? "").split(",").filter(Boolean);
     return (liste.includes(wert) ? liste.filter((x) => x !== wert) : [...liste, wert]).join(",");
   };
@@ -91,12 +118,49 @@ export function SuchSeite() {
       bis,
       kat,
       land,
+      region,
       gratis,
       q,
       neu,
     };
-  }, [bereit, startpunkt.lat, startpunkt.lng, zeit, radius, kat, land, gratis, q, neu]);
+  }, [bereit, startpunkt.lat, startpunkt.lng, zeit, radius, kat, land, region, gratis, q, neu]);
   const { events, fehler, laedt } = useEvents(abfrage);
+
+  // Zahlen pro Land und Bundesland (nur wenn „Land & Bundesland“ offen ist)
+  const zahlenSchluessel =
+    offen === "wo" && abfrage
+      ? new URLSearchParams({
+          von: abfrage.von.toISOString(),
+          bis: abfrage.bis.toISOString(),
+          kat: kat.join(","),
+          gratis: gratis ? "1" : "",
+          q,
+          neu: neu ? String(neu) : "",
+        }).toString()
+      : null;
+  const [zahlen, setZahlen] = useState<{ schluessel: string; werte: Record<string, number> } | null>(null);
+  useEffect(() => {
+    if (!zahlenSchluessel) return;
+    const ctrl = new AbortController();
+    fetch(`/api/regionen?${zahlenSchluessel}`, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { zahlen?: Record<string, number> } | null) => {
+        if (d?.zahlen) setZahlen({ schluessel: zahlenSchluessel, werte: d.zahlen });
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [zahlenSchluessel]);
+  const z = zahlen?.schluessel === zahlenSchluessel ? zahlen.werte : undefined;
+
+  const landUmschalten = (id: string) => {
+    const neuLand = umschalten("land", id);
+    // Land abgewählt → seine Bundesländer auch weg
+    const neuRegion = neuLand.split(",").includes(id) ? regionText : region.filter((r) => landVonRegion(r) !== id).join(",");
+    setze({ land: neuLand || null, region: neuRegion || null });
+  };
+  // Ein Bundesland ersetzt den Umkreis (wie bei Willhaben): es wird das ganze Bundesland gezeigt
+  const regionUmschalten = (id: string) => setze({ region: umschalten("region", id) || null, radius: "alle" });
+  const ganzesLand = (l: string) => setze({ region: region.filter((r) => landVonRegion(r) !== l).join(",") || null });
 
   // Nach Tagen gruppieren; laufende mehrtägige Events kommen oben in „Läuft gerade“
   const gruppen = useMemo(() => {
@@ -115,7 +179,7 @@ export function SuchSeite() {
     return g;
   }, [events]);
 
-  const filterAnzahl = kat.length + land.length + (gratis ? 1 : 0);
+  const filterAnzahl = kat.length + land.length + region.length + (gratis ? 1 : 0);
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-5 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
@@ -157,34 +221,44 @@ export function SuchSeite() {
 
       <Reihe titel="Wie weit?" tour="wie-weit">
         {UMKREISE.map((u) => (
-          <Chip key={u} an={radius === u} onClick={() => setze({ radius: u })}>
+          // Ein km-Umkreis sucht wieder ab dem Startpunkt – gewählte Bundesländer fallen dann weg
+          <Chip key={u} an={radius === u} onClick={() => setze(u === "alle" ? { radius: u } : { radius: u, region: null })}>
             {u === "alle" ? "Alle" : `${u} km`}
           </Chip>
         ))}
       </Reihe>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setMehr((m) => !m)}
-          aria-expanded={mehr}
-          data-tour="mehr-filter"
-          className="flex min-h-12 items-center gap-2 rounded-full bg-flaeche px-4 font-semibold ring-1 ring-linie hover:bg-see-zart"
-        >
-          <SlidersHorizontal className="h-5 w-5" /> Was & wo genau?
-          {filterAnzahl > 0 && <span className="rounded-full bg-see px-2 text-[0.85rem] text-white">{filterAnzahl}</span>}
-        </button>
-        {filterAnzahl > 0 && (
-          <button type="button" onClick={() => setze({ kat: null, land: null, gratis: null })} className="flex min-h-12 items-center gap-2 rounded-full px-3 font-semibold text-see">
-            <RotateCcw className="h-4 w-4" /> Zurücksetzen
-          </button>
-        )}
+      <div data-tour="mehr-filter" className="mt-4">
+        <p className="mb-2 text-[0.9rem] font-semibold text-gedaempft">Genauer eingrenzen</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Klapper offen={offen === "themen"} onClick={() => setOffen((o) => (o === "themen" ? null : "themen"))} icon={Shapes} text="Themen" anzahl={kat.length} />
+          <Klapper
+            offen={offen === "wo"}
+            onClick={() => setOffen((o) => (o === "wo" ? null : "wo"))}
+            icon={MapPin}
+            text="Land & Bundesland"
+            anzahl={land.length + region.length}
+          />
+          <Chip an={gratis} onClick={() => setze({ gratis: gratis ? null : "1" })}>
+            Nur gratis
+          </Chip>
+          {filterAnzahl > 0 && (
+            <button
+              type="button"
+              onClick={() => setze({ kat: null, land: null, region: null, gratis: null })}
+              className="flex min-h-12 items-center gap-2 rounded-full px-3 font-semibold text-see"
+            >
+              <RotateCcw className="h-4 w-4" /> Zurücksetzen
+            </button>
+          )}
+        </div>
       </div>
 
-      {mehr && (
-        <div className="mt-2 rounded-3xl bg-flaeche-2 p-4">
-          <p className="text-[0.9rem] font-semibold text-gedaempft">Themen</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+      {offen === "themen" && (
+        <div className="mt-3 rounded-3xl bg-flaeche-2 p-4">
+          <p className="font-semibold">Was interessiert dich?</p>
+          <p className="text-[0.9rem] text-gedaempft">Nichts angetippt = alle Themen. Mehrere gehen auch.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
             {KATEGORIEN.map((k) => {
               const Icon = KATEGORIE_ICON[k.id];
               return (
@@ -194,18 +268,48 @@ export function SuchSeite() {
               );
             })}
           </div>
-          <p className="mt-4 text-[0.9rem] font-semibold text-gedaempft">Länder</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+        </div>
+      )}
+
+      {offen === "wo" && (
+        <div className="mt-3 rounded-3xl bg-flaeche-2 p-4">
+          <p className="font-semibold">In welchem Land?</p>
+          <p className="text-[0.9rem] text-gedaempft">Nichts angetippt = alle Länder. Danach kannst du einzelne Bundesländer wählen.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(LAENDER).map(([id, l]) => (
-              <Chip key={id} an={land.includes(id)} onClick={() => setze({ land: umschalten("land", id) || null })}>
-                <span aria-hidden>{l.flagge}</span> {l.name}
+              <Chip key={id} an={land.includes(id)} onClick={() => landUmschalten(id)}>
+                <span aria-hidden>{l.flagge}</span> {l.name} <Zahl n={z ? (z[id] ?? 0) : undefined} an={land.includes(id)} />
               </Chip>
             ))}
           </div>
-          <p className="mt-4 text-[0.9rem] font-semibold text-gedaempft">Eintritt</p>
-          <div className="mt-2 flex gap-2">
-            <Chip an={gratis} onClick={() => setze({ gratis: gratis ? null : "1" })}>Nur gratis</Chip>
-          </div>
+
+          {land
+            .filter((l) => REGIONEN[l])
+            .map((l) => {
+              const gewaehlt = region.filter((r) => landVonRegion(r) === l);
+              return (
+                <div key={l} className="mt-4 rounded-2xl bg-flaeche p-3 ring-1 ring-linie">
+                  <p className="font-semibold">
+                    <span aria-hidden>{LAENDER[l].flagge}</span> {REGIONEN[l].titel} in {LAENDER[l].name}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Chip an={gewaehlt.length === 0} onClick={() => ganzesLand(l)}>
+                      Ganz {LAENDER[l].name}
+                    </Chip>
+                    {REGIONEN[l].liste.map((r) => (
+                      <Chip key={r.id} an={region.includes(r.id)} onClick={() => regionUmschalten(r.id)}>
+                        {r.name} <Zahl n={z ? (z[r.id] ?? 0) : undefined} an={region.includes(r.id)} />
+                      </Chip>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          {region.length > 0 && (
+            <p className="mt-3 text-[0.9rem] text-gedaempft">
+              Bei einem Bundesland wird das ganze Bundesland gezeigt – „Wie weit?“ steht deshalb auf „Alle“.
+            </p>
+          )}
         </div>
       )}
 

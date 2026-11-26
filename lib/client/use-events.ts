@@ -11,6 +11,7 @@ export interface EventAbfrage {
   bis: Date;
   kat?: string[];
   land?: string[];
+  region?: string[];
   gratis?: boolean;
   q?: string;
   neu?: number;
@@ -29,7 +30,7 @@ export function useEvents(abfrage: EventAbfrage | null) {
 
   const schluessel = abfrage
     ? [abfrage.lat.toFixed(3), abfrage.lng.toFixed(3), abfrage.radius, abfrage.von.toISOString().slice(0, 13), abfrage.bis.toISOString().slice(0, 13),
-       abfrage.kat?.join(",") ?? "", abfrage.land?.join(",") ?? "", abfrage.gratis ? 1 : 0, abfrage.q ?? "", abfrage.neu ?? "", abfrage.max ?? ""].join("|")
+       abfrage.kat?.join(",") ?? "", abfrage.land?.join(",") ?? "", abfrage.region?.join(",") ?? "", abfrage.gratis ? 1 : 0, abfrage.q ?? "", abfrage.neu ?? "", abfrage.max ?? ""].join("|")
     : null;
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export function useEvents(abfrage: EventAbfrage | null) {
     });
     if (abfrage.kat?.length) p.set("kat", abfrage.kat.join(","));
     if (abfrage.land?.length) p.set("land", abfrage.land.join(","));
+    if (abfrage.region?.length) p.set("region", abfrage.region.join(","));
     if (abfrage.gratis) p.set("gratis", "1");
     if (abfrage.q) p.set("q", abfrage.q);
     if (abfrage.neu) p.set("neu", String(abfrage.neu));

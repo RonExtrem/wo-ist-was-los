@@ -97,8 +97,8 @@ export const TOUR: TourSchritt[] = [
   {
     seite: "/suchen",
     ziel: '[data-tour="mehr-filter"]',
-    titel: "Was & wo genau?",
-    text: "Themen (z. B. nur Advent), Länder und „nur gratis“.",
+    titel: "Genauer eingrenzen",
+    text: "Themen (z. B. nur Advent), Land & Bundesland (z. B. nur Kärnten) und „nur gratis“.",
   },
   {
     seite: "/suchen",

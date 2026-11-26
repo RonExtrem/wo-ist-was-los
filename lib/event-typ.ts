@@ -36,6 +36,8 @@ export interface EventFilter {
   bis: string; // ISO
   kategorien?: string[];
   laender?: string[];
+  /** Bundesländer/Regionen (IDs aus lib/regionen.ts) – schränken nur ihr eigenes Land ein */
+  regionen?: string[];
   nurGratis?: boolean;
   suche?: string;
   /** Nur Events, die in den letzten X Tagen neu dazugekommen sind */

@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
       bis,
       kategorien: liste(p.get("kat")),
       laender: liste(p.get("land")),
+      regionen: liste(p.get("region")),
       nurGratis: p.get("gratis") === "1",
       suche: p.get("q")?.slice(0, 80),
       neuTage: zahl(p.get("neu"), null) ?? undefined,
