@@ -28,8 +28,8 @@ export const STANDARD_INTERESSEN: KategorieId[] = [
 /** Stichwörter im Titel/Text → zusätzliche Kategorien (Kleinschreibung, ohne Umlaut-Sonderfälle). */
 const STICHWOERTER: [RegExp, KategorieId][] = [
   [/advent|christkind|weihnacht|krampus|nikolo|nikolaus|perchten|adventmarkt|punsch/, "advent"],
-  [/kirchtag|kirchtog|zeltfest|feuerwehrfest|dorffest|sommerfest|seefest|brauchtum|trachten|fasching|maibaum|almabtrieb|erntedank|bauernherbst|fest\b|(?<!fuß|hand|volley|basket|feder|faust)ball\b|kränzchen|sternsing|maskenumzug|umzug/, "feste-brauchtum"],
-  [/schlager|volksmusik|volkstüml|oberkrainer|musikanten|musikantenstadl|blasmusik|trachtenkapelle|zither|harmonika|alpenrock|kastelruther|amigos/, "schlager-volksmusik"],
+  [/kirchtag|kirchtog|zeltfest|feuerwehrfest|dorffest|sommerfest|seefest|brauchtum|trachten|fasching|maibaum|almabtrieb|erntedank|bauernherbst|fest\b|(?<!fuß|hand|volley|basket|feder|faust)ball\b|kränzchen|sternsing|maskenumzug|umzug|\bsagra\b|\bsagre\b|kirchweih|kurent|\bpust\b/, "feste-brauchtum"],
+  [/schlager|volksmusik|volkstüml|oberkrainer|musikanten|musikantenstadl|blasmusik|blasorchester|trachtenkapelle|zither|harmonika|alpenrock|kastelruther|amigos|narodnozabav|narodno-zabav|ansambel|ansambla/, "schlager-volksmusik"],
   [/wein|martini|kulinari|genuss|kastanie|bauernmarkt|schnaps|bier|brot|käse|kas |reindling|kasnud/, "kulinarik-wein"],
   [/messe|flohmarkt|markt|basar|börse|bazar/, "messen-maerkte"],
   [/oldtimer|traktor|classic cars|auto&bike|motorrad|technik/, "oldtimer-technik"],

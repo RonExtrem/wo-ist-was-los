@@ -9,8 +9,9 @@ import { meinbezirk } from "./quellen/meinbezirk.ts";
 import { KI_SEITEN, kiQuelle } from "./quellen/ki-seiten.ts";
 import { kiAufrufeBisher } from "./lib/gemini.ts";
 import { GEMEINDEN, gemeindeQuelle } from "./quellen/gemeinde-kalender.ts";
+import { kranjskaGora } from "./quellen/kranjska-gora.ts";
 
-const ALLE_QUELLEN: Quelle[] = [kaerntnerMessen, meinbezirk, ...GEMEINDEN.map(gemeindeQuelle), ...KI_SEITEN.map(kiQuelle)];
+const ALLE_QUELLEN: Quelle[] = [kaerntnerMessen, meinbezirk, ...GEMEINDEN.map(gemeindeQuelle), kranjskaGora, ...KI_SEITEN.map(kiQuelle)];
 
 const args = process.argv.slice(2);
 const nurQuelle = args.find((a) => a.startsWith("--quelle="))?.split("=")[1];

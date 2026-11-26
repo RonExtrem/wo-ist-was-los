@@ -36,6 +36,12 @@ export const KI_SEITEN: KiSeite[] = [
   { id: "ki-hermagor", name: "Hermagor – Veranstaltungskalender", url: "https://hermagor.at/freizeit-tourismus/veranstaltungskalender/", land: "AT", region: "Kärnten", hinweis: "Stadtgemeinde Hermagor-Pressegger See im Gailtal. Ohne Ortsangabe: Hermagor." },
   { id: "ki-sachsenburg", name: "Sachsenburg – Termine & Veranstaltungen", url: "https://www.sachsenburg.at/de/marktgemeinde/termine-und-veranstaltungen", land: "AT", region: "Kärnten", hinweis: "Marktgemeinde Sachsenburg im Drautal. Ohne Ortsangabe: Sachsenburg." },
   { id: "ki-lendorf", name: "Lendorf – Veranstaltungen", url: "https://www.lendorf.at/veranstaltungen/", land: "AT", region: "Kärnten", hinweis: "Gemeinde Lendorf bei Spittal an der Drau. Ohne Ortsangabe: Lendorf." },
+  // Slowenien (Kranjska Gora siehe kranjska-gora.ts)
+  { id: "ki-bled", name: "Bled – Veranstaltungen", url: "https://www.bled.si/de/veranstaltungen/", land: "SI", region: "Oberkrain", hinweis: "Veranstaltungen in Bled und Umgebung (Oberkrain, Slowenien). Ohne Ortsangabe: Bled." },
+  { id: "ki-koroska-si", name: "Koroška – Slowenisch-Kärnten", url: "https://koroska.si/dogodki/", land: "SI", region: "Slowenisch-Kärnten", hinweis: "Veranstaltungen in Slowenisch-Kärnten (Koroška): Slovenj Gradec (Windischgraz), Ravne na Koroškem (Gutenstein), Dravograd (Unterdrauburg), Radlje ob Dravi (Mahrenberg), Prevalje, Mežica. „SG“ = Slovenj Gradec." },
+  // Friaul-Julisch Venetien (Tarvis siehe oben)
+  { id: "ki-turismofvg", name: "Friaul-Julisch Venetien – Veranstaltungen (turismofvg.it)", url: "https://www.turismofvg.it/eventi", land: "IT", region: "Friaul-Julisch Venetien", hinweis: "Offizielles Tourismusportal von Friaul-Julisch Venetien. Wenn eine Veranstaltung an vielen Orten gleichzeitig stattfindet, nur den ersten Ort angeben." },
+  { id: "ki-udinetoday", name: "UdineToday – Eventi", url: "https://www.udinetoday.it/eventi/", land: "IT", region: "Friaul-Julisch Venetien", hinweis: "Veranstaltungen in der Provinz Udine (Friaul). Sagre (Dorffeste) → feste-brauchtum oder kulinarik-wein, Mercatini di Natale → advent. Weglassen: Kurse („Corsi“), Kino, Werbung/Shopping-Aktionen, Wellness-Angebote, Gesundheits- und Impfvorträge, Buchvorstellungen, Bibliotheksveranstaltungen und Tagungen.", weitereSeiten: ["https://www.udinetoday.it/eventi/pag/2/", "https://www.udinetoday.it/eventi/pag/3/"] },
   { id: "ki-planica", name: "Planica", url: "https://www.planica.si/en", land: "SI", region: "Oberkrain", hinweis: "Ort ist Planica bei Rateče/Kranjska Gora, Slowenien. Skisprung-Veranstaltungen." },
 ];
 
@@ -114,8 +120,9 @@ Regeln:
 - Märkte (Adventmärkte, Christkindlmärkte, Bauernmärkte), Feste und mehrtägige Veranstaltungen SIND Veranstaltungen und gehören unbedingt dazu – als eigener Eintrag mit ihrem Zeitraum, zusätzlich zu einzelnen Programmpunkten.
 - Sei vollständig: lieber alle genannten Termine aufnehmen als welche auslassen.
 - Weglassen: Gottesdienste, Kurse/Workshops, Fachvorträge, Tagungen und Gremiensitzungen.
+- Ortsnamen in Slowenien und Italien: Originalname, bei bekanntem deutschem Namen diesen in Klammern dahinter, z. B. „Ljubljana (Laibach)“, „Kranj (Krainburg)“, „Tarvisio (Tarvis)“, „Gorizia (Görz)“, „Trieste (Triest)“, „Slovenj Gradec (Windischgraz)“. Ohne bekannten deutschen Namen nur den Originalnamen.
 - Kategorie: Faschingssitzungen, Kirchtage, Krampus/Perchten, Brauchtum → feste-brauchtum; Adventmärkte und Weihnachtliches → advent;
-  Schlager, Volksmusik, Blasmusik → schlager-volksmusik; Theater, Oper, Lesungen, Ausstellungen, klassische Konzerte → klassik-kultur.
+  Schlager, Volksmusik, Blasmusik, Oberkrainer, slowenische „narodnozabavna“-Musik und Ensembles („ansambel“) → schlager-volksmusik; italienische Sagre → feste-brauchtum (bei Essen im Mittelpunkt kulinarik-wein); Theater, Oper, Lesungen, Ausstellungen, klassische Konzerte → klassik-kultur.
 - unsicher = true, wenn du dir bei Datum oder Ort nicht sicher bist.
 
 Text der Seite ${seite.url}:
@@ -202,7 +209,8 @@ export function kiQuelle(seite: KiSeite): Quelle {
           k.log(`  weitere Seite nicht lesbar: ${(err as Error).message}`);
         }
       }
-      const hash = createHash("sha256").update(`${ANWEISUNG_VERSION}|${text}`).digest("hex");
+      // Hinweis gehört dazu: Wird er geändert, liest die KI die Seite neu
+      const hash = createHash("sha256").update(`${ANWEISUNG_VERSION}|${seite.hinweis ?? ""}|${text}`).digest("hex");
 
       const { rows } = await db().query("SELECT inhalt_hash, ergebnis FROM ki_cache WHERE url = $1", [seite.url]);
       let liste: KiEvent[];

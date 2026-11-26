@@ -25,7 +25,10 @@ async function ortErmitteln(e: RohEvent): Promise<{ lat: number; lng: number; re
   // Erst genau (Adresse), dann Ortsname, zuletzt nur der Ort (letzter Teil, z. B. „Stadtpfarrkirche, Hermagor“ → „Hermagor“)
   const nurOrt = e.ortName.split(",").pop()?.trim();
   const adresseOhneStrasse = e.adresse?.split(",").slice(-2).join(",").trim();
+  // „Ljubljana (Laibach)“ → für die Ortssuche nur „Ljubljana“
+  const ohneKlammer = (v?: string) => v?.replace(/\s*\([^)]*\)/g, "").trim();
   const versuche = [e.adresse, `${e.ortName}, ${landName}`, adresseOhneStrasse, nurOrt ? `${nurOrt}, ${landName}` : undefined]
+    .map(ohneKlammer)
     .filter((v, i, arr): v is string => !!v && arr.indexOf(v) === i);
   for (const anfrage of versuche) {
     const ort = await ortSuchen(anfrage);
