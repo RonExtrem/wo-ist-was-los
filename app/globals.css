@@ -1,71 +1,116 @@
 @import "tailwindcss";
 
-/* Farbwelt "Weißensee": klares Türkis, Lärchengrün, Felsgrau, Abendsonne */
+/* ── Farbwelt „Ruhe am Weißensee“ ─────────────────────────────── */
 :root {
   --see: #0b6e78;
+  --see-tief: #08525a;
   --see-hell: #2bb8bd;
-  --see-zart: #e3f4f4;
-  --kopf: #0b6e78; /* Kopfbereich, immer dunkel genug für weiße Schrift */
+  --see-zart: #ddf1f0;
+  --kopf: #0b6e78;
   --laerche: #3f6b4e;
   --fels: #6b7a80;
-  --abendsonne: #f08a3c;
-  --background: #f4f8f8;
+  --abendsonne: #e46f2e;
+  --abendsonne-zart: #fdeee4;
+  --background: #f3f7f6;
   --flaeche: #ffffff;
-  --foreground: #14303a;
-  --gedaempft: #55686f;
+  --flaeche-2: #eaf1f0;
+  --foreground: #12313a;
+  --gedaempft: #55696f;
+  --linie: rgba(18, 49, 58, 0.1);
+  --schatten: 0 1px 2px rgba(18, 49, 58, 0.06), 0 8px 24px -12px rgba(18, 49, 58, 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --see: #4fd0d3;
+    --see: #4fcfd1;
+    --see-tief: #8fe3e4;
     --see-hell: #2bb8bd;
-    --see-zart: #12343b;
+    --see-zart: #123a3f;
     --kopf: #0d4f58;
-    --laerche: #7fb08f;
+    --laerche: #86b897;
     --fels: #9aa9ae;
-    --abendsonne: #f6a15f;
-    --background: #0c1d22;
-    --flaeche: #13292f;
-    --foreground: #e6f1f2;
+    --abendsonne: #f29a5e;
+    --abendsonne-zart: #3a2418;
+    --background: #0b1a1e;
+    --flaeche: #12262b;
+    --flaeche-2: #183238;
+    --foreground: #e7f1f1;
     --gedaempft: #a3b6bb;
+    --linie: rgba(231, 241, 241, 0.1);
+    --schatten: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
   }
 }
 
 :root[data-theme="dark"] {
-  --see: #4fd0d3;
+  --see: #4fcfd1;
+  --see-tief: #8fe3e4;
   --see-hell: #2bb8bd;
-  --see-zart: #12343b;
+  --see-zart: #123a3f;
   --kopf: #0d4f58;
-  --laerche: #7fb08f;
+  --laerche: #86b897;
   --fels: #9aa9ae;
-  --abendsonne: #f6a15f;
-  --background: #0c1d22;
-  --flaeche: #13292f;
-  --foreground: #e6f1f2;
+  --abendsonne: #f29a5e;
+  --abendsonne-zart: #3a2418;
+  --background: #0b1a1e;
+  --flaeche: #12262b;
+  --flaeche-2: #183238;
+  --foreground: #e7f1f1;
   --gedaempft: #a3b6bb;
+  --linie: rgba(231, 241, 241, 0.1);
+  --schatten: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-flaeche: var(--flaeche);
+  --color-flaeche-2: var(--flaeche-2);
   --color-see: var(--see);
+  --color-see-tief: var(--see-tief);
   --color-see-hell: var(--see-hell);
   --color-see-zart: var(--see-zart);
   --color-kopf: var(--kopf);
   --color-laerche: var(--laerche);
   --color-fels: var(--fels);
   --color-abendsonne: var(--abendsonne);
+  --color-abendsonne-zart: var(--abendsonne-zart);
   --color-gedaempft: var(--gedaempft);
-  --font-sans: var(--font-figtree);
+  --color-linie: var(--linie);
+  --font-sans: var(--font-atkinson);
+  --font-titel: var(--font-young-serif);
+  --shadow-karte: var(--schatten);
 }
 
-/* Große Grundschrift für gute Lesbarkeit */
-html {
-  font-size: 112.5%; /* 18px */
-}
+/* ── Schriftgröße (Einstellung) – Standard: groß ──────────────── */
+html { font-size: 112.5%; }
+html[data-schrift="normal"] { font-size: 100%; }
+html[data-schrift="sehr_gross"] { font-size: 125%; }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  -webkit-tap-highlight-color: transparent;
 }
+
+.font-titel { letter-spacing: -0.01em; }
+
+/* Platz für die Leiste unten (+ iPhone-/Android-Gestenleiste) */
+.unten-platz { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)); }
+
+/* Waagrecht scrollbare Chip-Reihen ohne sichtbaren Balken */
+.ohne-balken { scrollbar-width: none; }
+.ohne-balken::-webkit-scrollbar { display: none; }
+
+/* Wasser-Glitzern im Kopfbereich */
+@keyframes glitzern {
+  0%, 100% { opacity: 0.15; transform: translateX(0); }
+  50% { opacity: 0.55; transform: translateX(8px); }
+}
+.glitzer { animation: glitzern 5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .glitzer { animation: none; }
+  * { scroll-behavior: auto !important; }
+}
+
+:focus-visible { outline: 3px solid var(--abendsonne); outline-offset: 2px; border-radius: 0.5rem; }

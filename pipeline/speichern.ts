@@ -1,7 +1,7 @@
 // Schreibt Roh-Events in die Datenbank: Ort ergänzen, Doppelte zusammenführen, Terminänderungen erkennen.
 import type { RohEvent } from "./typen.ts";
 import { db } from "./lib/db.ts";
-import { ortSuchen, abstandKm, KLAGENFURT, SAMMEL_RADIUS_KM } from "./lib/geo.ts";
+import { ortSuchen, imSammelgebiet } from "./lib/geo.ts";
 import { fingerabdruck, titelAehnlichkeit } from "./lib/doppelte.ts";
 import { wienTag } from "./lib/zeit.ts";
 
@@ -59,7 +59,7 @@ export async function speichereEvents(
       log(`  ohne Ort verworfen: ${e.titel} (${e.ortName})`);
       continue;
     }
-    if (abstandKm(ort, KLAGENFURT) > SAMMEL_RADIUS_KM) {
+    if (!imSammelgebiet(ort)) {
       statistik.zuWeitWeg++;
       continue;
     }
