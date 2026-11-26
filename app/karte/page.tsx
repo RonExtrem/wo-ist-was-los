@@ -346,7 +346,7 @@ export default function KartenSeite() {
             <div className="pointer-events-auto mx-4 flex items-center gap-3 rounded-3xl bg-abendsonne p-3 pl-4 text-white shadow-lg">
               <Pointer className="h-6 w-6 shrink-0" />
               <p className="flex-1 text-[1.05rem] font-semibold leading-snug">
-                {hinweis ?? "Tippe innerhalb der roten Linie auf die Stelle, um die herum gesucht werden soll."}
+                {hinweis ?? "Tippe innerhalb der roten Linie auf den gewünschten Ort."}
               </p>
               <button
                 type="button"
@@ -433,6 +433,26 @@ export default function KartenSeite() {
               <Satellite className="h-5 w-5 text-see" />
             )}
             {satellit ? "Karte" : "Satellit"}
+          </button>
+        )}
+
+        {/* Schnellknopf über Plus/Minus: gleich einen Punkt auf der Karte antippen */}
+        {bereit && (
+          <button
+            type="button"
+            onClick={() => {
+              setAuswahl([]);
+              setHinweis(null);
+              setPunktWaehlen((v) => !v);
+            }}
+            aria-pressed={punktWaehlen}
+            aria-label={punktWaehlen ? "Punkt wählen abbrechen" : "Ort auf der Karte antippen"}
+            className={`absolute bottom-[9.25rem] right-[10px] flex w-[44px] flex-col items-center gap-0.5 rounded-2xl py-2 text-[0.7rem] font-bold leading-none shadow-md ring-1 transition-colors ${
+              punktWaehlen ? "bg-abendsonne text-white ring-abendsonne" : "bg-flaeche/95 text-see ring-linie backdrop-blur"
+            }`}
+          >
+            <Pointer className="h-6 w-6" />
+            {punktWaehlen ? "Stopp" : "Ort"}
           </button>
         )}
 
