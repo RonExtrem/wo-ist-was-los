@@ -53,7 +53,7 @@ export function StartpunktWahl({ hell = false }: { hell?: boolean }) {
     }`;
 
   return (
-    <div>
+    <div data-tour="startpunkt">
       <p className={`mb-2 text-[0.9rem] font-semibold ${hell ? "text-white/90" : "text-gedaempft"}`}>Entfernung messen ab:</p>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={daheim} className={knopf(startpunkt.art === "daheim")} aria-pressed={startpunkt.art === "daheim"}>

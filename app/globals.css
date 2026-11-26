@@ -142,3 +142,10 @@ svg {
   -webkit-user-drag: none;
 }
 
+
+/* Tour: Mitmach-Ziel pulsiert sanft */
+@keyframes tour-puls {
+  0%, 100% { outline: 3px solid color-mix(in oklab, var(--see) 70%, transparent); outline-offset: 2px; }
+  50% { outline: 3px solid transparent; outline-offset: 10px; }
+}
+.tour-puls { animation: tour-puls 1.6s ease-out infinite; }

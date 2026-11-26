@@ -380,7 +380,7 @@ function KartenInhalt() {
         )}
 
         {/* Filter oben über der Karte */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+        <div data-tour="karte-filter" className="pointer-events-none absolute inset-x-0 top-0 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
           {punktWaehlen ? (
             <div className="pointer-events-auto mx-4 flex items-center gap-3 rounded-3xl bg-abendsonne p-3 pl-4 text-white shadow-lg">
               <Pointer className="h-6 w-6 shrink-0" />

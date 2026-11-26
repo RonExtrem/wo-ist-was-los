@@ -38,9 +38,9 @@ function Chip({ an, onClick, children }: { an: boolean; onClick: () => void; chi
   );
 }
 
-function Reihe({ titel, children }: { titel: string; children: React.ReactNode }) {
+function Reihe({ titel, tour, children }: { titel: string; tour?: string; children: React.ReactNode }) {
   return (
-    <div className="mt-4">
+    <div data-tour={tour} className="mt-4">
       <p className="mb-2 text-[0.9rem] font-semibold text-gedaempft">{titel}</p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
@@ -162,7 +162,7 @@ export function SuchSeite() {
         <StartpunktWahl />
       </div>
 
-      <Reihe titel="Wann?">
+      <Reihe titel="Wann?" tour="wann">
         {ZEITEN.map((z) => (
           <Chip key={z.id} an={zeit === z.id} onClick={() => setze({ zeit: z.id })}>
             {z.text}
@@ -170,7 +170,7 @@ export function SuchSeite() {
         ))}
       </Reihe>
 
-      <Reihe titel="Wie weit?">
+      <Reihe titel="Wie weit?" tour="wie-weit">
         {UMKREISE.map((u) => (
           <Chip key={u} an={radius === u} onClick={() => setze({ radius: u })}>
             {u === "alle" ? "Alle" : `${u} km`}
@@ -183,6 +183,7 @@ export function SuchSeite() {
           type="button"
           onClick={() => setMehr((m) => !m)}
           aria-expanded={mehr}
+          data-tour="mehr-filter"
           className="flex min-h-12 items-center gap-2 rounded-full bg-flaeche px-4 font-semibold ring-1 ring-linie hover:bg-see-zart"
         >
           <SlidersHorizontal className="h-5 w-5" /> Was & wo genau?

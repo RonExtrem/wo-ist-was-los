@@ -7,6 +7,7 @@ import { LeisteUnten } from "@/components/LeisteUnten";
 import { NachObenKnopf } from "@/components/NachObenKnopf";
 import { ErinnerungsFrage } from "@/components/ErinnerungsFrage";
 import { Willkommen } from "@/components/Willkommen";
+import { Tour } from "@/components/Tour";
 import { HinweisLeiste } from "@/components/HinweisLeiste";
 import "./globals.css";
 
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <ErinnerungsFrage />
             <HinweisLeiste />
             <Willkommen />
+            <Tour />
           </Suspense>
         </AppZustandProvider>
         <ServiceWorkerRegister />

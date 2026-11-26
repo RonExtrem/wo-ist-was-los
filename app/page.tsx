@@ -26,7 +26,7 @@ function Abschnitt({
 }) {
   const { einstellungen } = useApp();
   return (
-    <section className="mt-9">
+    <section data-tour="abschnitt" className="mt-9">
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
           <h2 className="font-titel text-[1.6rem] leading-tight">{titel}</h2>
@@ -90,7 +90,7 @@ export default function Startseite() {
             Umkreis <strong className="text-foreground">{umkreis} km</strong> um <strong className="text-foreground">{startpunkt.name}</strong>
           </p>
           {teile && (
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div data-tour="laender" className="mt-3 grid grid-cols-3 gap-2">
               {(["AT", "SI", "IT"] as const).map((l) => (
                 <Link
                   key={l}
@@ -104,7 +104,9 @@ export default function Startseite() {
               ))}
             </div>
           )}
-          <AnsichtWahl className="mt-3 w-full" />
+          <div data-tour="ansicht" className="mt-3">
+            <AnsichtWahl className="w-full" />
+          </div>
         </div>
 
         {(laedt && !events) || !bereit ? (

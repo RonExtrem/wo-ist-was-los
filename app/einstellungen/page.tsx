@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { House, Check, Sun, Moon, SunMoon } from "lucide-react";
+import { House, Check, Sun, Moon, SunMoon, GraduationCap } from "lucide-react";
+import { tourStarten } from "@/lib/client/tour";
 import { useApp } from "@/lib/client/app-zustand";
 import { OrtSuche } from "@/components/StartpunktWahl";
 import { AnsichtWahl } from "@/components/EventListe";
@@ -51,6 +52,16 @@ export default function Einstellungen() {
         <ZurueckKnopf />
         <h1 className="font-titel text-[2.1rem] leading-tight">Einstellungen</h1>
       </div>
+
+      <Karte titel="Hilfe" text="Die kurze Tour zeigt dir Schritt für Schritt alles, was die App kann.">
+        <button
+          type="button"
+          onClick={tourStarten}
+          className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-see px-4 text-left text-lg font-bold text-white"
+        >
+          <GraduationCap className="h-6 w-6" /> Tour durch die App starten
+        </button>
+      </Karte>
 
       <Karte titel="Dein Name" text="Jedes Handy ist das Profil einer Person – mit eigenen Herzen, Erinnerungen und Interessen.">
         <input
@@ -168,7 +179,7 @@ export default function Einstellungen() {
       </p>
 
       <p className="mt-8 pb-4 text-center text-[0.85rem] text-gedaempft">
-        „Wo is wos los?“ · Veranstaltungen aus Kärnten, Slowenien und Friaul.
+        „Wo is wos los?“ · Veranstaltungen aus Österreich, Slowenien und Norditalien.
         <br />
         Alle Angaben ohne Gewähr – maßgeblich ist die Seite des Veranstalters.
       </p>

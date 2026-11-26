@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Bell, Check, ChevronLeft, House, LoaderCircle, LocateFixed, MapPin, Search, Smartphone } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
+import { tourStarten } from "@/lib/client/tour";
 import { pushEinschalten, pushStatus, type PushStatus } from "@/lib/client/push";
 import { KATEGORIEN } from "@/lib/kategorien";
 import { KATEGORIE_ICON } from "@/components/KategorieBild";
@@ -214,9 +215,26 @@ function Assistent() {
                   Mit dem Herz ♥ merkst du dir Veranstaltungen. Auf Wunsch erinnert dich die App am Vortag und am Tag selbst.
                 </p>
                 <PushKnopf api={api} />
+                <div className="mt-6 rounded-2xl bg-see-zart p-4">
+                  <p className="text-lg font-bold text-see">Unser Tipp: die kurze Tour</p>
+                  <p className="mt-1 text-[1rem]">
+                    In etwa 2 Minuten zeigt dir die App Schritt für Schritt alles, was sie kann – ein paar Mal tippst du selbst. Du findest die
+                    Tour später auch in den Einstellungen.
+                  </p>
+                </div>
                 <div className="mt-auto pt-8">
-                  <button type="button" className={knopf} onClick={fertig}>
-                    Los geht&apos;s
+                  <button
+                    type="button"
+                    className={knopf}
+                    onClick={() => {
+                      fertig();
+                      tourStarten();
+                    }}
+                  >
+                    Tour starten (empfohlen)
+                  </button>
+                  <button type="button" onClick={fertig} className="mt-3 flex min-h-12 w-full items-center justify-center rounded-2xl font-semibold text-gedaempft">
+                    Ohne Tour loslegen
                   </button>
                 </div>
               </>
