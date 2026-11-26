@@ -6,6 +6,25 @@ import type { GeoJSONSource, Map as KartenMap, MapLayerMouseEvent } from "maplib
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { EventKurz } from "@/lib/event-typ";
 import { kategorieInfo } from "./KategorieBild";
+import { SUCHGEBIET_RINGE, SUCHGEBIET_RAHMEN } from "@/lib/suchgebiet";
+
+/** Alles außerhalb des Suchgebiets: die ganze Welt mit dem Suchgebiet als Loch. */
+const AUSSERHALB: GeoJSON.Feature<GeoJSON.Polygon> = {
+  type: "Feature",
+  properties: {},
+  geometry: {
+    type: "Polygon",
+    coordinates: [
+      [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]],
+      ...SUCHGEBIET_RINGE.map((r) => [...r].reverse()),
+    ],
+  },
+};
+const GRENZE: GeoJSON.Feature<GeoJSON.MultiLineString> = {
+  type: "Feature",
+  properties: {},
+  geometry: { type: "MultiLineString", coordinates: SUCHGEBIET_RINGE },
+};
 
 // Hilfsdatei der Karte liegt unter /public (Versionsnummer im Namen → sauberes Zwischenspeichern)
 const WORKER_URL = "/maplibre/maplibre-gl-worker-6.17.0.mjs";
@@ -16,7 +35,7 @@ const SATELLIT_KACHELN = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_
 const SATELLIT_HINWEIS =
   '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless – s2maps.eu</a> von EOX IT Services GmbH (enthält veränderte Copernicus-Sentinel-Daten 2024)';
 const SEE = "#0B6E78";
-const UNSERE_EBENEN = new Set(["satellit", "umkreis-flaeche", "umkreis-rand", "daheim", "gruppen", "gruppen-zahl", "punkte"]);
+const UNSERE_EBENEN = new Set(["satellit", "ausserhalb", "grenze-schein", "grenze", "umkreis-flaeche", "umkreis-rand", "daheim", "gruppen", "gruppen-zahl", "punkte"]);
 
 /** Kreis (als Vieleck) um einen Punkt – für den Umkreis. */
 function kreis(lat: number, lng: number, km: number): GeoJSON.Feature<GeoJSON.Polygon> {
@@ -99,6 +118,12 @@ export function KartenAnsicht({
           style: STIL,
           center: [13.5, 46.75],
           zoom: 8,
+          // Nur das Suchgebiet: nicht weit darüber hinaus schieben oder herauszoomen
+          maxBounds: [
+            [SUCHGEBIET_RAHMEN[0][0] - 2.5, SUCHGEBIET_RAHMEN[0][1] - 1.2],
+            [SUCHGEBIET_RAHMEN[1][0] + 2.5, SUCHGEBIET_RAHMEN[1][1] + 1.2],
+          ],
+          minZoom: 4.8,
           attributionControl: { compact: true },
           dragRotate: false,
           pitchWithRotate: false,
@@ -128,6 +153,25 @@ export function KartenAnsicht({
             attribution: SATELLIT_HINWEIS,
           });
           m.addLayer({ id: "satellit", type: "raster", source: "satellit", layout: { visibility: "none" } }, ersteNachHintergrund);
+
+          // Suchgebiet: außerhalb abgedunkelt, rote Grenzlinie
+          m.addSource("ausserhalb", { type: "geojson", data: AUSSERHALB });
+          m.addLayer({ id: "ausserhalb", type: "fill", source: "ausserhalb", paint: { "fill-color": "#0b1d22", "fill-opacity": 0.45 } });
+          m.addSource("grenze", { type: "geojson", data: GRENZE });
+          m.addLayer({
+            id: "grenze-schein",
+            type: "line",
+            source: "grenze",
+            paint: { "line-color": "#ffffff", "line-width": 6, "line-opacity": 0.55 },
+            layout: { "line-join": "round" },
+          });
+          m.addLayer({
+            id: "grenze",
+            type: "line",
+            source: "grenze",
+            paint: { "line-color": "#d62828", "line-width": 3 },
+            layout: { "line-join": "round" },
+          });
 
           m.addSource("umkreis", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           m.addLayer({ id: "umkreis-flaeche", type: "fill", source: "umkreis", paint: { "fill-color": SEE, "fill-opacity": 0.07 } });
@@ -282,7 +326,7 @@ export function KartenAnsicht({
     const abstand = { padding: { top: 170, bottom: 40, left: 20, right: 20 }, duration: 800 };
     if (umkreisKm == null) {
       // „Überall“: ganz Österreich mit den Grenzgebieten
-      m.fitBounds([[9.5, 45.6], [17.2, 49.05]], abstand);
+      m.fitBounds(SUCHGEBIET_RAHMEN, abstand);
       return;
     }
     const dLat = umkreisKm / 111.32;

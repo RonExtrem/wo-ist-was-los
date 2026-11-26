@@ -24,6 +24,7 @@ import { OrtSuche } from "@/components/StartpunktWahl";
 import { zeitfenster } from "@/lib/datum";
 import { KATEGORIEN } from "@/lib/kategorien";
 import { KATEGORIE_ICON } from "@/components/KategorieBild";
+import { imSuchgebiet } from "@/lib/suchgebiet";
 
 // Kurze Namen für die Auswahl über der Karte
 const KURZ: Record<string, string> = {
@@ -265,6 +266,11 @@ export default function KartenSeite() {
   // Punkt auf der Karte gewählt → dort suchen, Ortsname nachladen
   const kartenTipp = useCallback(
     (lat: number, lng: number) => {
+      if (!imSuchgebiet({ lat, lng }, 1)) {
+        setHinweis("Bitte innerhalb der roten Linie tippen – nur dort sammelt die App Veranstaltungen.");
+        return;
+      }
+      setHinweis(null);
       setPunktWaehlen(false);
       setAuswahl([]);
       setzeStartpunkt({ art: "anders", name: "Gewählter Punkt", lat, lng });
@@ -340,11 +346,14 @@ export default function KartenSeite() {
             <div className="pointer-events-auto mx-4 flex items-center gap-3 rounded-3xl bg-abendsonne p-3 pl-4 text-white shadow-lg">
               <Pointer className="h-6 w-6 shrink-0" />
               <p className="flex-1 text-[1.05rem] font-semibold leading-snug">
-                Tippe auf die Stelle, um die herum gesucht werden soll.
+                {hinweis ?? "Tippe innerhalb der roten Linie auf die Stelle, um die herum gesucht werden soll."}
               </p>
               <button
                 type="button"
-                onClick={() => setPunktWaehlen(false)}
+                onClick={() => {
+                  setPunktWaehlen(false);
+                  setHinweis(null);
+                }}
                 className="min-h-12 shrink-0 rounded-full bg-white/20 px-4 font-semibold"
               >
                 Abbrechen

@@ -1,6 +1,7 @@
 // Ortssuche über Nominatim (OpenStreetMap) – höchstens 1 Abfrage pro Sekunde, Ergebnisse werden gespeichert.
 import { db } from "./db.ts";
 import { KENNUNG } from "./http.ts";
+import { imSuchgebiet } from "../../lib/suchgebiet.ts";
 
 export interface Ort {
   lat: number;
@@ -81,15 +82,7 @@ export function abstandKm(a: { lat: number; lng: number }, b: { lat: number; lng
 export const KLAGENFURT = { lat: 46.6247, lng: 14.3053 };
 export const SPITTAL = { lat: 46.7989, lng: 13.4955 };
 
-/**
- * Sammelgebiet: ganz Österreich (Rechteck um die Landesgrenzen) und die Grenzgebiete
- * Südtirol, Belluno/Cortina, Friaul mit Triest und Slowenien – Venedig und weiter südlich nicht.
- */
-const GEBIETE: { west: number; ost: number; sued: number; nord: number }[] = [
-  { west: 9.5, ost: 17.2, sued: 46.35, nord: 49.05 }, // Österreich
-  { west: 10.4, ost: 16.6, sued: 45.55, nord: 46.4 }, // Südtirol, Belluno, Friaul, Triest, Slowenien
-];
-
+/** Sammelgebiet = Suchgebiet der App (ganz Österreich + Grenzgebiete), 2 km Spielraum an der Grenze. */
 export function imSammelgebiet(p: { lat: number; lng: number }): boolean {
-  return GEBIETE.some((g) => p.lng >= g.west && p.lng <= g.ost && p.lat >= g.sued && p.lat <= g.nord);
+  return imSuchgebiet(p, 2);
 }
