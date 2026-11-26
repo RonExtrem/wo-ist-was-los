@@ -9,15 +9,14 @@ import { kategorieInfo } from "./KategorieBild";
 
 // Hilfsdatei der Karte liegt unter /public (Versionsnummer im Namen → sauberes Zwischenspeichern)
 const WORKER_URL = "/maplibre/maplibre-gl-worker-6.17.0.mjs";
-const STIL_HELL = "https://tiles.openfreemap.org/styles/liberty";
-const STIL_DUNKEL = "https://tiles.openfreemap.org/styles/dark";
+// Immer die helle Karte – auf der dunklen gingen die Ortsnamen unter
+const STIL = "https://tiles.openfreemap.org/styles/liberty";
+// Satellitenbild: Sentinel-2 cloudless von EOX (gratis für private, nicht-kommerzielle Nutzung, ohne Schlüssel)
+const SATELLIT_KACHELN = "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg";
+const SATELLIT_HINWEIS =
+  '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless – s2maps.eu</a> von EOX IT Services GmbH (enthält veränderte Copernicus-Sentinel-Daten 2024)';
 const SEE = "#0B6E78";
-
-function istDunkel() {
-  const t = document.documentElement.dataset.theme;
-  if (t) return t === "dark";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
+const UNSERE_EBENEN = new Set(["satellit", "umkreis-flaeche", "umkreis-rand", "daheim", "gruppen", "gruppen-zahl", "punkte"]);
 
 /** Kreis (als Vieleck) um einen Punkt – für den Umkreis. */
 function kreis(lat: number, lng: number, km: number): GeoJSON.Feature<GeoJSON.Polygon> {
@@ -31,14 +30,18 @@ function kreis(lat: number, lng: number, km: number): GeoJSON.Feature<GeoJSON.Po
   return { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [punkte] } };
 }
 
-function alsGeoJson(events: EventKurz[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
+function alsGeoJson(events: EventKurz[], bevorzugt: string[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
   return {
     type: "FeatureCollection",
     features: events
       .filter((e) => e.lat != null && e.lng != null)
       .map((e) => ({
         type: "Feature",
-        properties: { id: e.id, farbe: kategorieInfo(e.kategorien[0] ?? "sonstiges").farbe },
+        // Bei aktivem Kategorie-Filter: Farbe der gewählten Kategorie
+        properties: {
+          id: e.id,
+          farbe: kategorieInfo(e.kategorien.find((k) => bevorzugt.includes(k)) ?? e.kategorien[0] ?? "sonstiges").farbe,
+        },
         geometry: { type: "Point", coordinates: [e.lng as number, e.lat as number] },
       })),
   };
@@ -49,11 +52,15 @@ export function KartenAnsicht({
   mitte,
   umkreisKm,
   onAuswahl,
+  satellit = false,
+  bevorzugt = [],
 }: {
   events: EventKurz[];
   mitte: { lat: number; lng: number; name: string };
   umkreisKm: number | null;
   onAuswahl: (ids: string[]) => void;
+  satellit?: boolean;
+  bevorzugt?: string[];
 }) {
   const behaelter = useRef<HTMLDivElement>(null);
   const karte = useRef<KartenMap | null>(null);
@@ -63,6 +70,10 @@ export function KartenAnsicht({
   useEffect(() => {
     auswahlRef.current = onAuswahl;
   }, [onAuswahl]);
+
+  // Quellenangabe nur als kleines (i) – aufgeklappt würde sie den Satelliten-Knopf verdecken
+  const zuklappen = () =>
+    behaelter.current?.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");
 
   // Karte einmal aufbauen (MapLibre wird erst hier geladen – die anderen Seiten bleiben schlank)
   useEffect(() => {
@@ -75,7 +86,7 @@ export function KartenAnsicht({
         maplibre.setWorkerUrl(WORKER_URL);
         m = new maplibre.Map({
           container: behaelter.current,
-          style: istDunkel() ? STIL_DUNKEL : STIL_HELL,
+          style: STIL,
           center: [13.5, 46.75],
           zoom: 8,
           attributionControl: { compact: true },
@@ -96,6 +107,18 @@ export function KartenAnsicht({
               m.setLayoutProperty(ebene.id, "text-field", ["coalesce", ["get", "name:de"], ["get", "name_de"], ["get", "name"]]);
             }
           }
+          // Satellitenbild direkt über dem Hintergrund, Straßen und Ortsnamen bleiben darüber
+          const ebenen = m.getStyle().layers;
+          const ersteNachHintergrund = ebenen.find((e) => e.type !== "background")?.id;
+          m.addSource("satellit", {
+            type: "raster",
+            tiles: [SATELLIT_KACHELN],
+            tileSize: 256,
+            maxzoom: 15,
+            attribution: SATELLIT_HINWEIS,
+          });
+          m.addLayer({ id: "satellit", type: "raster", source: "satellit", layout: { visibility: "none" } }, ersteNachHintergrund);
+
           m.addSource("umkreis", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           m.addLayer({ id: "umkreis-flaeche", type: "fill", source: "umkreis", paint: { "fill-color": SEE, "fill-opacity": 0.07 } });
           m.addLayer({
@@ -128,9 +151,11 @@ export function KartenAnsicht({
             filter: ["has", "point_count"],
             paint: {
               "circle-color": SEE,
-              "circle-radius": ["step", ["get", "point_count"], 18, 10, 23, 40, 29],
+              "circle-opacity": 0.62,
+              "circle-radius": ["step", ["get", "point_count"], 17, 10, 21, 40, 26],
               "circle-stroke-color": "#ffffff",
-              "circle-stroke-width": 3,
+              "circle-stroke-width": 2.5,
+              "circle-stroke-opacity": 0.9,
             },
           });
           m.addLayer({
@@ -138,8 +163,15 @@ export function KartenAnsicht({
             type: "symbol",
             source: "events",
             filter: ["has", "point_count"],
-            layout: { "text-field": ["get", "point_count_abbreviated"], "text-font": ["Noto Sans Bold"], "text-size": 16 },
-            paint: { "text-color": "#ffffff" },
+            layout: {
+              "text-field": ["get", "point_count_abbreviated"],
+              "text-font": ["Noto Sans Bold"],
+              "text-size": 16,
+              // Zahl immer zeigen, ohne Ortsnamen wegzudrängen
+              "text-allow-overlap": true,
+              "text-ignore-placement": true,
+            },
+            paint: { "text-color": "#ffffff", "text-halo-color": "rgba(4,50,56,0.85)", "text-halo-width": 1.5 },
           });
           m.addLayer({
             id: "punkte",
@@ -148,9 +180,11 @@ export function KartenAnsicht({
             filter: ["!", ["has", "point_count"]],
             paint: {
               "circle-color": ["get", "farbe"],
-              "circle-radius": 12,
+              "circle-opacity": 0.7,
+              "circle-radius": 11,
               "circle-stroke-color": "#ffffff",
-              "circle-stroke-width": 3,
+              "circle-stroke-width": 2.5,
+              "circle-stroke-opacity": 0.95,
             },
           });
 
@@ -177,6 +211,7 @@ export function KartenAnsicht({
             m.on("mouseenter", ebene, () => m && (m.getCanvas().style.cursor = "pointer"));
             m.on("mouseleave", ebene, () => m && (m.getCanvas().style.cursor = ""));
           }
+          zuklappen();
           setGeladen(true);
         });
         m.on("error", (ev) => console.warn("Karte:", ev.error?.message));
@@ -196,8 +231,26 @@ export function KartenAnsicht({
   useEffect(() => {
     const m = karte.current;
     if (!geladen || !m) return;
-    (m.getSource("events") as GeoJSONSource).setData(alsGeoJson(events));
-  }, [geladen, events]);
+    (m.getSource("events") as GeoJSONSource).setData(alsGeoJson(events, bevorzugt));
+  }, [geladen, events, bevorzugt]);
+
+  // Satellit ein/aus: Bild zeigen, Flächen der normalen Karte (Wald, Wiesen, Häuser …) ausblenden
+  useEffect(() => {
+    const m = karte.current;
+    if (!geladen || !m) return;
+    m.setLayoutProperty("satellit", "visibility", satellit ? "visible" : "none");
+    for (const ebene of m.getStyle().layers) {
+      if (UNSERE_EBENEN.has(ebene.id)) continue;
+      if (ebene.type === "fill" || ebene.type === "fill-extrusion" || ebene.type === "hillshade") {
+        m.setLayoutProperty(ebene.id, "visibility", satellit ? "none" : "visible");
+      }
+      // Ortsnamen auf dem Foto: kräftiger weißer Rand, damit sie gut lesbar sind
+      if (ebene.type === "symbol" && ebene.id.startsWith("label")) {
+        m.setPaintProperty(ebene.id, "text-halo-width", satellit ? 2.2 : 1);
+      }
+    }
+    setTimeout(zuklappen, 50);
+  }, [geladen, satellit]);
 
   // Startpunkt + Umkreis zeichnen und passend hinzoomen
   useEffect(() => {

@@ -121,14 +121,24 @@ body {
   height: 44px !important;
 }
 
-/* Knöpfe und Links: beim Antippen keinen Text markieren (fühlt sich am Handy wie eine echte App an) */
-button,
-[role="button"],
-[role="switch"],
-a {
+/* Wie eine echte App: nirgends Text markieren (langes Drücken öffnet kein Kopieren-Menü).
+   Nur Eingabefelder bleiben normal, damit man dort tippen, markieren und einfügen kann. */
+html,
+body {
   -webkit-user-select: none;
   user-select: none;
-  -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+img,
+svg {
+  -webkit-user-drag: none;
 }
 

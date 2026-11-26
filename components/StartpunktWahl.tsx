@@ -99,6 +99,9 @@ export function OrtSuche({
   const [treffer, setTreffer] = useState<OrtTreffer[]>([]);
   const [laedt, setLaedt] = useState(false);
   const eingabe = useRef<HTMLInputElement>(null);
+  // Orte in der Nähe des Wohnorts zuerst vorschlagen
+  const { einstellungen } = useApp();
+  const naehe = { lat: einstellungen.lat, lng: einstellungen.lng };
 
   useEffect(() => {
     if (offen) setTimeout(() => eingabe.current?.focus(), 250);
@@ -116,14 +119,14 @@ export function OrtSuche({
     if (!genug) return;
     const t = setTimeout(() => {
       setLaedt(true);
-      fetch(`/api/ort?q=${encodeURIComponent(text.trim())}`)
+      fetch(`/api/ort?q=${encodeURIComponent(text.trim())}&lat=${naehe.lat.toFixed(3)}&lng=${naehe.lng.toFixed(3)}`)
         .then((r) => r.json())
         .then((d: { orte: OrtTreffer[] }) => setTreffer(d.orte ?? []))
         .catch(() => setTreffer([]))
         .finally(() => setLaedt(false));
     }, 450);
     return () => clearTimeout(t);
-  }, [text, genug]);
+  }, [text, genug, naehe.lat, naehe.lng]);
 
   return (
     <AnimatePresence>
@@ -153,7 +156,7 @@ export function OrtSuche({
                 ref={eingabe}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="z. B. Villach, Lienz, Grado …"
+                placeholder="Ort oder Postleitzahl, z. B. 9500"
                 className="h-14 flex-1 bg-transparent text-lg outline-none placeholder:text-gedaempft"
                 enterKeyHint="search"
               />
@@ -176,7 +179,7 @@ export function OrtSuche({
                 </li>
               ))}
               {!laedt && genug && treffer.length === 0 && (
-                <li className="px-3 py-4 text-gedaempft">Kein Ort gefunden. Bitte anders schreiben.</li>
+                <li className="px-3 py-4 text-gedaempft">Kein Ort gefunden. Probier die Postleitzahl oder den Nachbarort.</li>
               )}
             </ul>
           </motion.div>
