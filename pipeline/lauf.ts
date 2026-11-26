@@ -12,6 +12,7 @@ import { GEMEINDEN, gemeindeQuelle } from "./quellen/gemeinde-kalender.ts";
 import { kranjskaGora } from "./quellen/kranjska-gora.ts";
 import { suedtirol } from "./quellen/suedtirol.ts";
 import { dolomiti } from "./quellen/dolomiti.ts";
+import { aufraeumen } from "./aufraeumen.ts";
 
 // Reihenfolge = Wichtigkeit: Kärnten und Grenzgebiete zuerst, dann die anderen Bundesländer
 const [meinbezirkKaernten, ...meinbezirkRest] = BUNDESLAENDER.map(meinbezirkQuelle);
@@ -137,6 +138,15 @@ async function main() {
          WHERE id = $1`,
         [q.id, bericht.gefunden, neuerSchnitt, schlecht, bericht.fehler ?? null]
       );
+    }
+  }
+
+  // Nach einem vollen Lauf: übersehene Doppelte zusammenführen, Vergangenes löschen
+  if (!nurQuelle) {
+    try {
+      await aufraeumen(trocken, log);
+    } catch (err) {
+      log(`  Aufräumen fehlgeschlagen: ${(err as Error).message}`);
     }
   }
 

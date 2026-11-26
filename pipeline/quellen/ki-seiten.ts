@@ -156,7 +156,9 @@ function inRohEvents(seite: KiSeite, liste: KiEvent[]): RohEvent[] {
     let urlIstDetail = false;
     if (e.link) {
       try {
-        url = new URL(e.link.replace(/[<>]/g, ""), seite.url).href;
+        // „villacher-fasching.at/veranstaltungen/“ (ohne https://) wäre sonst ein Pfad unter der Seite
+        const roh = e.link.replace(/[<>]/g, "").trim().replace(/^(www\.)?([a-z0-9-]+\.)+[a-z]{2,}\//i, (m) => `https://${m}`);
+        url = new URL(roh, seite.url).href;
         urlIstDetail = url !== seite.url && !(seite.weitereSeiten ?? []).includes(url);
       } catch {
         /* Seiten-URL behalten */

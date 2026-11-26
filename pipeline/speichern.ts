@@ -2,7 +2,7 @@
 import type { RohEvent } from "./typen.ts";
 import { db } from "./lib/db.ts";
 import { ortSuchen, imSammelgebiet } from "./lib/geo.ts";
-import { fingerabdruck, titelAehnlichkeit } from "./lib/doppelte.ts";
+import { fingerabdruck, gleichesEvent } from "./lib/doppelte.ts";
 import { wienTag } from "./lib/zeit.ts";
 
 export interface SpeicherStatistik {
@@ -101,17 +101,27 @@ export async function speichereEvents(
       }
     }
 
-    // 3) Dasselbe Event aus einer anderen Quelle? (±1 Tag, < 2 km, ähnlicher Titel)
+    // 3) Dasselbe Event aus einer anderen Quelle? (selber Tag oder < 12 h auseinander; Ort/Titel siehe gleichesEvent)
+    //    Aus derselben Quelle nur bei Übersichtsseiten am selben Tag (KI formuliert Titel manchmal neu) –
+    //    sonst würden Folgetermine einer Serie (Fr/Sa/So) zu einem Termin verschmolzen.
     if (!eventId) {
       ({ rows } = await pool.query(
-        `SELECT id, titel FROM events
-          WHERE beginn BETWEEN $1::timestamptz - interval '1 day' AND $1::timestamptz + interval '1 day'
-            AND ST_DWithin(geo, $2::geography, 2000)`,
-        [e.beginn, punkt]
+        `SELECT e.id, e.titel, ST_Distance(e.geo, $2::geography) AS meter,
+                (e.beginn AT TIME ZONE 'Europe/Vienna')::date = $4::date AS gleicher_tag,
+                abs(extract(epoch FROM e.beginn - $1::timestamptz)) <= 43200 AS nah,
+                EXISTS (SELECT 1 FROM event_links l WHERE l.event_id = e.id AND l.quelle_id = $3) AS gleiche_quelle
+           FROM events e
+          WHERE e.beginn BETWEEN $1::timestamptz - interval '1 day' AND $1::timestamptz + interval '1 day'
+            AND ST_DWithin(e.geo, $2::geography, 8000)`,
+        [e.beginn, punkt, e.quelleId, tag]
       ));
       const treffer = rows
-        .map((r) => ({ id: r.id as string, wert: titelAehnlichkeit(r.titel, e.titel) }))
-        .filter((r) => r.wert >= 0.5)
+        .filter((r) => (r.gleiche_quelle ? e.urlIstDetail !== true && r.gleicher_tag : r.gleicher_tag || r.nah))
+        .map((r) => ({
+          id: r.id as string,
+          wert: gleichesEvent(r.titel, e.titel, Number(r.meter), r.gleiche_quelle) + (r.gleicher_tag ? 0.01 : 0),
+        }))
+        .filter((r) => r.wert > 0.01)
         .sort((a, b) => b.wert - a.wert)[0];
       if (treffer) {
         eventId = treffer.id;
