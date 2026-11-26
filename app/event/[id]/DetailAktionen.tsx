@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { ArrowLeft, CalendarPlus, ExternalLink, Route, Share2, Check } from "lucide-react";
+import { ArrowLeft, BellOff, BellRing, CalendarPlus, ExternalLink, Route, Share2, Check } from "lucide-react";
+import { pushEinschalten, pushMoeglich } from "@/lib/client/push";
 import type { EventDetail } from "@/lib/event-typ";
 import { useApp } from "@/lib/client/app-zustand";
 import { HerzKnopf } from "@/components/HerzKnopf";
@@ -56,8 +57,27 @@ function kalenderLink(e: EventDetail): string {
 
 export function DetailAktionen({ event: e }: { event: EventDetail }) {
   const [geteilt, setGeteilt] = useState(false);
-  const { favoriten, merken } = useApp();
+  const { favoriten, merken, ohneErinnerung, setzeErinnerung, einstellungen, setzeEinstellungen, zeigeHinweis, api } = useApp();
   const gemerkt = favoriten.has(e.id);
+  const mitErinnerung = einstellungen.erinnern && !ohneErinnerung.has(e.id);
+
+  const erinnerungUmschalten = async () => {
+    if (mitErinnerung) {
+      setzeErinnerung(e.id, false);
+      zeigeHinweis("Erinnerung ist aus – bleibt aber gemerkt.");
+      return;
+    }
+    if (!einstellungen.erinnern) setzeEinstellungen({ erinnern: true });
+    if (pushMoeglich() && Notification.permission !== "granted") {
+      const s = await pushEinschalten(api).catch(() => "aus" as const);
+      if (s !== "an") {
+        zeigeHinweis("Benachrichtigungen sind am Handy gesperrt – bitte in den Handy-Einstellungen erlauben.");
+        return;
+      }
+    }
+    setzeErinnerung(e.id, true);
+    zeigeHinweis("Erinnerung ist eingestellt ✓");
+  };
   const original = e.links[0];
   const quelleName = original?.quelle ?? (original ? new URL(original.url).hostname.replace(/^www\./, "") : "");
   const route = e.lat != null && e.lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${e.lat},${e.lng}` : null;
@@ -110,10 +130,29 @@ export function DetailAktionen({ event: e }: { event: EventDetail }) {
         <span>
           <span className="block text-lg font-semibold">{gemerkt ? "Gemerkt" : "Merken"}</span>
           <span className="block text-[0.9rem] text-gedaempft">
-            {gemerkt ? "Steht unter „Meine“ – nochmal tippen zum Entfernen" : "Erscheint dann unter „Meine“, mit Erinnerung"}
+            {gemerkt ? "Steht unter „Meine“ – nochmal tippen zum Entfernen" : "Erscheint dann unter „Meine“"}
           </span>
         </span>
       </motion.button>
+
+      {gemerkt && (
+        <button
+          type="button"
+          onClick={erinnerungUmschalten}
+          aria-pressed={mitErinnerung}
+          className={`-mt-1 flex min-h-14 w-full items-center gap-3 rounded-2xl px-4 text-left ring-1 transition-colors ${
+            mitErinnerung ? "bg-see-zart ring-see/40" : "bg-flaeche ring-linie"
+          }`}
+        >
+          {mitErinnerung ? <BellRing className="h-6 w-6 shrink-0 text-see" /> : <BellOff className="h-6 w-6 shrink-0 text-gedaempft" />}
+          <span>
+            <span className="block font-semibold">{mitErinnerung ? "Erinnerung ist an" : "Keine Erinnerung"}</span>
+            <span className="block text-[0.9rem] text-gedaempft">
+              {mitErinnerung ? "Vortag ca. 18 Uhr und am Tag ca. 8 Uhr – antippen zum Abschalten" : "Antippen, um doch erinnert zu werden"}
+            </span>
+          </span>
+        </button>
+      )}
 
       <div className="flex gap-3">
         <a href={kalenderLink(e)} target="_blank" rel="noopener noreferrer" className={zweit}>

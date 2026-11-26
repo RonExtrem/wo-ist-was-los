@@ -5,7 +5,7 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { AppZustandProvider } from "@/lib/client/app-zustand";
 import { LeisteUnten } from "@/components/LeisteUnten";
 import { NachObenKnopf } from "@/components/NachObenKnopf";
-import { PushFrage } from "@/components/PushFrage";
+import { ErinnerungsFrage } from "@/components/ErinnerungsFrage";
 import { HinweisLeiste } from "@/components/HinweisLeiste";
 import "./globals.css";
 
@@ -40,7 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense fallback={null}>
             <LeisteUnten />
             <NachObenKnopf />
-            <PushFrage />
+            <ErinnerungsFrage />
             <HinweisLeiste />
           </Suspense>
         </AppZustandProvider>

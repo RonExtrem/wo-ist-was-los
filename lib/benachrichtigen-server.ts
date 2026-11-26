@@ -52,7 +52,7 @@ async function erinnerungen(art: "am_tag" | "vortag"): Promise<number> {
        FROM favoriten f
        JOIN events e ON e.id = f.event_id
        JOIN einstellungen s ON s.geraet_id = f.geraet_id
-      WHERE s.erinnern
+      WHERE s.erinnern AND f.erinnern
         AND ${mitAbo("f.geraet_id")}
         AND e.status IN ('aktiv', 'geaendert')
         AND (e.beginn AT TIME ZONE 'Europe/Vienna')::date = (now() AT TIME ZONE 'Europe/Vienna')::date + $1::int

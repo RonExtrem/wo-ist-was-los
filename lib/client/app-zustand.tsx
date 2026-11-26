@@ -17,6 +17,8 @@ export interface Einstellungen {
   ansicht: Ansicht;
   /** Push: an gemerkte Veranstaltungen erinnern (Vortag + am Tag) */
   erinnern: boolean;
+  /** Beim Merken jedes Mal fragen: erinnern oder nur merken? */
+  erinnerungFragen: boolean;
   /** Push „Neu für dich“: täglich, seltener (2× pro Woche) oder aus */
   neuFuerDich: "taeglich" | "seltener" | "aus";
   /** Push am Donnerstag: Wochenend-Tipp */
@@ -42,11 +44,18 @@ const STANDARD: Einstellungen = {
   theme: "auto",
   ansicht: "gross",
   erinnern: true,
+  erinnerungFragen: true,
   neuFuerDich: "taeglich",
   wochenendTipp: true,
 };
 
-const SCHLUESSEL = { token: "wiwl-token", einst: "wiwl-einstellungen", start: "wiwl-startpunkt", fav: "wiwl-favoriten" };
+const SCHLUESSEL = {
+  token: "wiwl-token",
+  einst: "wiwl-einstellungen",
+  start: "wiwl-startpunkt",
+  fav: "wiwl-favoriten",
+  ohneErinnerung: "wiwl-ohne-erinnerung",
+};
 
 function lies<T>(k: string, ersatz: T): T {
   try {
@@ -74,10 +83,15 @@ interface AppZustand {
   merken: (eventId: string) => void;
   api: (pfad: string, init?: RequestInit) => Promise<Response>;
   /** Nach dem ersten Herz einmal fragen, ob erinnert werden soll */
-  pushFrage: boolean;
-  schliessePushFrage: () => void;
+  /** Gemerkte Veranstaltungen, an die NICHT erinnert werden soll */
+  ohneErinnerung: Set<string>;
+  setzeErinnerung: (eventId: string, an: boolean) => void;
+  /** Nach dem Herz: Frage „erinnern oder nur merken?“ für dieses Event */
+  frageFuer: string | null;
+  schliesseFrage: () => void;
   /** Kurze Bestätigung unten am Bildschirm (z. B. nach dem Merken) */
   hinweis: { id: number; text: string } | null;
+  zeigeHinweis: (text: string) => void;
 }
 
 const Ctx = createContext<AppZustand | null>(null);
@@ -91,7 +105,8 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     favoritenRef.current = favoriten;
   }, [favoriten]);
-  const [pushFrage, setPushFrage] = useState(false);
+  const [frageFuer, setFrageFuer] = useState<string | null>(null);
+  const [ohneErinnerung, setOhne] = useState<Set<string>>(new Set());
   const [hinweis, setHinweis] = useState<{ id: number; text: string } | null>(null);
   const hinweisTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const zeigeHinweis = useCallback((text: string) => {
@@ -99,7 +114,7 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
     setHinweis({ id: Date.now(), text });
     hinweisTimer.current = setTimeout(() => setHinweis(null), 4000);
   }, []);
-  const erinnernRef = useRef(true);
+  const einstRef = useRef<Einstellungen>(STANDARD);
   const tokenRef = useRef<string | null>(null);
   const tokenPromise = useRef<Promise<string | null> | null>(null);
 
@@ -144,15 +159,18 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
     setStart(s.art === "daheim" ? { art: "daheim", name: e.wohnortName, lat: e.lat, lng: e.lng } : s);
     try {
       setFav(new Set(JSON.parse(localStorage.getItem(SCHLUESSEL.fav) ?? "[]")));
+      setOhne(new Set(JSON.parse(localStorage.getItem(SCHLUESSEL.ohneErinnerung) ?? "[]")));
     } catch {
       /* egal */
     }
     setBereit(true);
     api("/api/favoriten")
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { ids: string[] } | null) => {
+      .then((d: { ids: string[]; ohneErinnerung?: string[] } | null) => {
         if (d) {
           setFav(new Set(d.ids));
+          setOhne(new Set(d.ohneErinnerung ?? []));
+          schreib(SCHLUESSEL.ohneErinnerung, d.ohneErinnerung ?? []);
           schreib(SCHLUESSEL.fav, d.ids);
         }
       })
@@ -160,8 +178,8 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
   }, [api]);
 
   useEffect(() => {
-    erinnernRef.current = einstellungen.erinnern;
-  }, [einstellungen.erinnern]);
+    einstRef.current = einstellungen;
+  }, [einstellungen]);
 
   // Schriftgröße und Hell/Dunkel auf die ganze Seite anwenden
   useEffect(() => {
@@ -195,49 +213,69 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
     schreib(SCHLUESSEL.start, s);
   }, []);
 
+  const setzeErinnerung = useCallback(
+    (eventId: string, an: boolean) => {
+      setOhne((alt) => {
+        const neu = new Set(alt);
+        if (an) neu.delete(eventId);
+        else neu.add(eventId);
+        schreib(SCHLUESSEL.ohneErinnerung, [...neu]);
+        return neu;
+      });
+      api("/api/favoriten", { method: "PATCH", body: JSON.stringify({ eventId, erinnern: an }) }).catch(() => {});
+    },
+    [api]
+  );
+
   const merken = useCallback(
     (eventId: string) => {
       const warSchon = favoritenRef.current.has(eventId);
-      // Rückmeldung außerhalb der Zustandsänderung (nur einmal, auch im Entwicklungsmodus)
+      const e = einstRef.current;
+      // Fragen, wenn Erinnerungen grundsätzlich an sind und „jedes Mal fragen“ eingestellt ist
+      const fragen = !warSchon && e.erinnern && e.erinnerungFragen;
+      // Beim Fragen erst einmal „nur merken“ – erinnert wird erst nach einem „Ja“
+      const erinnern = !warSchon && e.erinnern && !fragen;
       if (warSchon) {
         zeigeHinweis("Nicht mehr gemerkt");
+      } else if (fragen) {
+        setFrageFuer(eventId);
+      } else if (erinnern && pushMoeglich() && Notification.permission === "granted") {
+        zeigeHinweis("Gemerkt ♥ Erinnerung kommt am Vortag um ca. 18 Uhr und am Tag um ca. 8 Uhr.");
       } else {
-        const erlaubnis = pushMoeglich() ? Notification.permission : "denied";
-        let schonGefragt = true;
-        try {
-          schonGefragt = !!localStorage.getItem("wiwl-push-gefragt");
-        } catch {
-          /* egal */
-        }
-        if (erlaubnis === "default" && !schonGefragt) setTimeout(() => setPushFrage(true), 500);
-        else if (erlaubnis === "granted" && erinnernRef.current)
-          zeigeHinweis("Gemerkt ♥ Erinnerung kommt am Vortag um ca. 18 Uhr und am Tag um ca. 8 Uhr.");
-        else zeigeHinweis("Gemerkt ♥ Du findest es unter „Meine“.");
+        zeigeHinweis("Gemerkt ♥ Du findest es unter „Meine“.");
       }
-      setFav((alt) => {
-        const neu = new Set(alt);
-        const istDrin = neu.has(eventId);
-        if (istDrin) neu.delete(eventId);
-        else neu.add(eventId);
-        schreib(SCHLUESSEL.fav, [...neu]);
-        const anfrage = istDrin
-          ? api(`/api/favoriten?eventId=${eventId}`, { method: "DELETE" })
-          : api("/api/favoriten", { method: "POST", body: JSON.stringify({ eventId }) });
-        anfrage.catch(() => {});
+      setOhne((alt) => {
+        if (warSchon || erinnern) {
+          if (!alt.has(eventId)) return alt;
+          const neu = new Set(alt);
+          neu.delete(eventId);
+          schreib(SCHLUESSEL.ohneErinnerung, [...neu]);
+          return neu;
+        }
+        const neu = new Set(alt).add(eventId);
+        schreib(SCHLUESSEL.ohneErinnerung, [...neu]);
         return neu;
       });
+      setFav((alt) => {
+        const neu = new Set(alt);
+        if (warSchon) neu.delete(eventId);
+        else neu.add(eventId);
+        schreib(SCHLUESSEL.fav, [...neu]);
+        return neu;
+      });
+      const anfrage = warSchon
+        ? api(`/api/favoriten?eventId=${eventId}`, { method: "DELETE" })
+        : api("/api/favoriten", { method: "POST", body: JSON.stringify({ eventId, erinnern }) });
+      anfrage.catch(() => {});
     },
     [api, zeigeHinweis]
   );
 
-  const schliessePushFrage = useCallback(() => {
-    setPushFrage(false);
-    schreib("wiwl-push-gefragt", true);
-  }, []);
+  const schliesseFrage = useCallback(() => setFrageFuer(null), []);
 
   const wert = useMemo(
-    () => ({ bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api, pushFrage, schliessePushFrage, hinweis }),
-    [bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api, pushFrage, schliessePushFrage, hinweis]
+    () => ({ bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api, ohneErinnerung, setzeErinnerung, frageFuer, schliesseFrage, hinweis, zeigeHinweis }),
+    [bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api, ohneErinnerung, setzeErinnerung, frageFuer, schliesseFrage, hinweis, zeigeHinweis]
   );
   return <Ctx.Provider value={wert}>{children}</Ctx.Provider>;
 }

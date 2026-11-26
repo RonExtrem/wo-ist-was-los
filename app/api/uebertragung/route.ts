@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   if (alt[0].id === geraet) return Response.json({ fehler: "Das ist der Code von diesem Handy." }, { status: 400 });
 
   await db.query(
-    "INSERT INTO favoriten (geraet_id, event_id, erstellt) SELECT $1, event_id, erstellt FROM favoriten WHERE geraet_id = $2 ON CONFLICT DO NOTHING",
+    "INSERT INTO favoriten (geraet_id, event_id, erstellt, erinnern) SELECT $1, event_id, erstellt, erinnern FROM favoriten WHERE geraet_id = $2 ON CONFLICT DO NOTHING",
     [geraet, alt[0].id]
   );
   const e = (await db.query(

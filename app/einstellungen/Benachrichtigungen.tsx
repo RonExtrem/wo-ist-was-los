@@ -91,9 +91,21 @@ export function Benachrichtigungen() {
         <Schalter
           an={e.erinnern}
           onClick={() => setzeEinstellungen({ erinnern: !e.erinnern })}
-          titel="An gemerkte Veranstaltungen erinnern"
+          titel="Erinnerungen an gemerkte Veranstaltungen"
           text="Am Vortag um ca. 18 Uhr und am Tag um ca. 8 Uhr. Absagen und Terminänderungen meldet die App immer."
         />
+        {e.erinnern && (
+          <Schalter
+            an={e.erinnerungFragen}
+            onClick={() => setzeEinstellungen({ erinnerungFragen: !e.erinnerungFragen })}
+            titel="Beim Merken jedes Mal fragen"
+            text={
+              e.erinnerungFragen
+                ? "Nach dem Herz kommt die Frage: erinnern oder nur merken?"
+                : "Aus: Jedes gemerkte Event wird automatisch erinnert."
+            }
+          />
+        )}
         <Schalter
           an={e.wochenendTipp}
           onClick={() => setzeEinstellungen({ wochenendTipp: !e.wochenendTipp })}
