@@ -3,7 +3,7 @@ import type { RohEvent } from "./typen.ts";
 import { db } from "./lib/db.ts";
 import { ortSuchen, imSammelgebiet } from "./lib/geo.ts";
 import { fingerabdruck, gleichesEvent } from "./lib/doppelte.ts";
-import { wienTag } from "./lib/zeit.ts";
+import { wienTag, wienTagesende } from "./lib/zeit.ts";
 
 export interface SpeicherStatistik {
   neu: number;
@@ -50,6 +50,10 @@ export async function speichereEvents(
   for (const e of events) urlAnzahl.set(e.url, (urlAnzahl.get(e.url) ?? 0) + 1);
 
   for (const e of events) {
+    // Ende vor (oder gleich) Beginn ergibt keinen Sinn – sonst verschwindet das Event am eigenen Tag aus den Listen
+    if (e.ende && e.ende.getTime() <= e.beginn.getTime()) e.ende = undefined;
+    // Ganztägig ohne Ende läuft bis zum Abend (sonst fehlt es ab Mitternacht in „Heute“)
+    if (e.ganztaegig && !e.ende) e.ende = wienTagesende(e.beginn);
     const endeOderBeginn = (e.ende ?? e.beginn).getTime();
     if (endeOderBeginn < jetzt - 6 * 3600_000) {
       statistik.vergangen++;

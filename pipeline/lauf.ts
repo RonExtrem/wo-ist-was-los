@@ -117,6 +117,8 @@ async function main() {
     } catch (err) {
       bericht.fehler = (err as Error).message;
       log(`  FEHLER: ${bericht.fehler}`);
+      // Wo genau? (erste Zeilen der Spur, hilft beim Reparieren)
+      (err as Error).stack?.split("\n").slice(1, 4).forEach((z) => log(`    ${z.trim()}`));
     }
     bericht.sekunden = Math.round((Date.now() - t0) / 1000);
     berichte.push(bericht);

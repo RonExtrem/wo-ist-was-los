@@ -7,7 +7,7 @@ import {
   freiluftAusText,
   type KategorieId,
 } from "../../lib/kategorien.ts";
-import { plusTage, wienTag } from "../lib/zeit.ts";
+import { istWienMitternacht, ldZeit, plusTage, wienTag, wienTagesende } from "../lib/zeit.ts";
 
 const BASIS = "https://www.meinbezirk.at";
 
@@ -195,13 +195,18 @@ function ldEvents(html: string): LdEvent[] {
 }
 
 /** Termine zusammenfassen: aufeinanderfolgende Tage werden ein Zeitraum. Höchstens 3 künftige Zeiträume. */
-function zeitraeume(
-  termine: { beginn: Date; ende?: Date }[],
-): { beginn: Date; ende?: Date }[] {
+interface Termin {
+  beginn: Date;
+  ende?: Date;
+  /** Nur ein Datum angegeben (z. B. Adventmarkt) → ganztägig */
+  ganzerTag: boolean;
+}
+
+function zeitraeume(termine: Termin[]): Termin[] {
   const sortiert = [...termine].sort(
     (a, b) => a.beginn.getTime() - b.beginn.getTime(),
   );
-  const ergebnis: { beginn: Date; ende?: Date }[] = [];
+  const ergebnis: Termin[] = [];
   for (const t of sortiert) {
     const letzter = ergebnis[ergebnis.length - 1];
     const letzterTag = letzter ? wienTag(letzter.ende ?? letzter.beginn) : null;
@@ -212,7 +217,8 @@ function zeitraeume(
         wienTag(plusTage(new Date(letzterTag + "T12:00:00Z"), 1)) ===
           wienTag(t.beginn))
     ) {
-      letzter.ende = t.ende ?? t.beginn;
+      // Ganztägiger letzter Tag läuft bis zum Abend, nicht nur bis 0 Uhr
+      letzter.ende = t.ende ?? (t.ganzerTag ? wienTagesende(t.beginn) : t.beginn);
     } else {
       ergebnis.push({ ...t });
     }
@@ -260,14 +266,22 @@ async function bekannteUeberspringen(
   );
   const tagNr = Math.floor(Date.now() / 86_400_000);
   const bald = Date.now() + 10 * 86_400_000;
-  const skip = new Set<string>();
-  const ids: string[] = [];
+  // Eine Seite nur überspringen, wenn KEIN Termin von ihr fällig ist – sonst würde ein bald stattfindender
+  // Termin nicht aufgefrischt und nach 30 h fälschlich als „möglicherweise abgesagt“ markiert.
+  const faelligeUrls = new Set<string>();
+  const nichtFaellig = new Map<string, string[]>();
   for (const r of rows as { url: string; id: string; beginn: string }[]) {
     const faellig =
       new Date(r.beginn).getTime() < bald || pruefzahl(r.url) % 7 === tagNr % 7;
-    if (faellig) continue;
-    skip.add(r.url);
-    ids.push(r.id);
+    if (faellig) faelligeUrls.add(r.url);
+    else nichtFaellig.set(r.url, [...(nichtFaellig.get(r.url) ?? []), r.id]);
+  }
+  const skip = new Set<string>();
+  const ids: string[] = [];
+  for (const [url, idsDerSeite] of nichtFaellig) {
+    if (faelligeUrls.has(url)) continue;
+    skip.add(url);
+    ids.push(...idsDerSeite);
   }
   if (ids.length && !trocken) {
     await db().query(
@@ -315,20 +329,25 @@ export function meinbezirkQuelle(land: Bundesland): Quelle {
         }
         if (!lds.length) continue;
 
+        // Eine kaputte Veranstaltung darf nicht die ganze Quelle abbrechen (Wien: „Invalid time value“)
+        try {
         const erstes = lds[0];
         const titel = (erstes.name ?? "").trim();
         const ort = erstes.location?.[0];
         const a = ort?.address;
         if (!titel || !ort || !(a?.addressLocality || ort.name)) continue;
 
-        const termine = lds
-          .filter((l) => l.startDate)
-          .map((l) => {
-            const ende = l.endDate ? new Date(l.endDate) : undefined;
-            // Kaputtes Enddatum (kam in Wien vor) → einfach ohne Ende, statt die ganze Quelle abzubrechen
-            return { beginn: new Date(l.startDate!), ende: ende && !Number.isNaN(ende.getTime()) ? ende : undefined };
-          })
-          .filter((t) => !Number.isNaN(t.beginn.getTime()));
+        const termine: Termin[] = [];
+        for (const l of lds) {
+          const b = ldZeit(l.startDate);
+          if (!b) continue;
+          // Kaputtes Enddatum (kam in Wien vor) → einfach ohne Ende, statt die ganze Quelle abzubrechen
+          const e = ldZeit(l.endDate, true);
+          let ende = e && e.zeit > b.zeit ? e.zeit : undefined;
+          // „2026-12-02“ als Ende am selben Tag heißt nur „endet an diesem Tag“ – sonst stünde „19:00–23:59 Uhr“ da
+          if (ende && e?.nurDatum && wienTag(ende) === wienTag(b.zeit)) ende = undefined;
+          termine.push({ beginn: b.zeit, ende, ganzerTag: b.nurDatum });
+        }
 
         const beschreibung =
           (erstes.description ?? "")
@@ -365,9 +384,11 @@ export function meinbezirkQuelle(land: Bundesland): Quelle {
           .join(", ");
 
         for (const z of zeitraeume(termine)) {
+          // Ganztägig: nur ein Datum angegeben, oder mehrtägig ab Mitternacht (Wiener Zeit, auch im Sommer)
           const ganztaegig =
-            wienTag(z.beginn) !== wienTag(z.ende ?? z.beginn) &&
-            z.beginn.getUTCHours() === 23;
+            z.ganzerTag ||
+            (wienTag(z.beginn) !== wienTag(z.ende ?? z.beginn) &&
+              istWienMitternacht(z.beginn));
           events.push({
             quelleId: land.id,
             url,
@@ -390,6 +411,9 @@ export function meinbezirkQuelle(land: Bundesland): Quelle {
             freiluft: freiluftAusText(text),
             sicherheit: "sicher",
           });
+        }
+        } catch (err) {
+          hinweise.push(`${pfad}: übersprungen (${(err as Error).message})`);
         }
       }
       return { events, hinweise };

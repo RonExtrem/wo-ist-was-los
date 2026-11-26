@@ -47,7 +47,8 @@ export function zeitText(e: { beginn: string; ende: string | null; ganztaegig: b
     return `${vonText} – ${bisText}`;
   }
   if (e.ganztaegig) return "ganztägig";
-  const ende = en && !e.ganztaegig ? `–${uhrzeit.format(en)}` : "";
+  // Ende nur zeigen, wenn es nach dem Beginn liegt (nie „19:00–01:00 Uhr“ am selben Tag)
+  const ende = en && !e.ganztaegig && en > b ? `–${uhrzeit.format(en)}` : "";
   return `${uhrzeit.format(b)}${ende} Uhr`;
 }
 
