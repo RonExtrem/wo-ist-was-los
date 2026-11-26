@@ -8,8 +8,9 @@ import { kaerntnerMessen } from "./quellen/kaerntner-messen.ts";
 import { meinbezirk } from "./quellen/meinbezirk.ts";
 import { KI_SEITEN, kiQuelle } from "./quellen/ki-seiten.ts";
 import { kiAufrufeBisher } from "./lib/gemini.ts";
+import { GEMEINDEN, gemeindeQuelle } from "./quellen/gemeinde-kalender.ts";
 
-const ALLE_QUELLEN: Quelle[] = [kaerntnerMessen, meinbezirk, ...KI_SEITEN.map(kiQuelle)];
+const ALLE_QUELLEN: Quelle[] = [kaerntnerMessen, meinbezirk, ...GEMEINDEN.map(gemeindeQuelle), ...KI_SEITEN.map(kiQuelle)];
 
 const args = process.argv.slice(2);
 const nurQuelle = args.find((a) => a.startsWith("--quelle="))?.split("=")[1];
@@ -31,7 +32,10 @@ interface QuellenBericht {
 
 async function main() {
   const laufStart = new Date();
-  const quellen = ALLE_QUELLEN.filter((q) => !nurQuelle || q.id === nurQuelle);
+  // --quelle=gemeinde-* → alle Quellen, deren Kennung so beginnt
+  const passt = (id: string) =>
+    !nurQuelle || (nurQuelle.endsWith("*") ? id.startsWith(nurQuelle.slice(0, -1)) : id === nurQuelle);
+  const quellen = ALLE_QUELLEN.filter((q) => passt(q.id));
   if (!quellen.length) throw new Error(`Unbekannte Quelle: ${nurQuelle}`);
   log(`Event-Sammler startet (${quellen.map((q) => q.id).join(", ")})${trocken ? " – TROCKENLAUF, nichts wird gespeichert" : ""}`);
 
@@ -39,7 +43,9 @@ async function main() {
   // Ersatz-Termin: Wenn heute Nacht schon fertig gesammelt wurde, nichts doppelt tun
   if (args.includes("--nur-falls-noetig") && !nurQuelle) {
     const { rows } = await pool.query(
-      "SELECT 1 FROM sammler_laeufe WHERE beendet IS NOT NULL AND gestartet > now() - interval '18 hours' LIMIT 1",
+      // Teil-Läufe (nur einzelne Quellen, z. B. zum Testen) zählen nicht
+      `SELECT 1 FROM sammler_laeufe WHERE beendet IS NOT NULL AND gestartet > now() - interval '18 hours'
+         AND NOT coalesce((bericht->>'teil')::boolean, false) LIMIT 1`,
     );
     if (rows.length) {
       log("Heute wurde schon gesammelt – Ersatz-Lauf nicht nötig.");
@@ -76,7 +82,7 @@ async function main() {
       erg.hinweise.slice(0, 10).forEach((h) => log(`  Hinweis: ${h}`));
 
       if (trocken) {
-        for (const e of events.slice(0, 15)) {
+        for (const e of events.slice(0, Number(process.env.TROCKEN_ZEILEN ?? 15))) {
           log(`   · ${e.beginn.toISOString().slice(0, 16)} | ${e.titel} | ${e.ortName} | ${e.kategorien.join(",")}`);
         }
       } else {
@@ -98,7 +104,11 @@ async function main() {
       const { rows } = await pool.query("SELECT durchschnitt FROM quellen WHERE id = $1", [q.id]);
       const schnitt = rows[0]?.durchschnitt == null ? null : Number(rows[0].durchschnitt);
       const kontingent = /Höchstzahl|GEMINI_API_KEY fehlt/.test(bericht.fehler ?? "");
-      const schlecht = !kontingent && (!!bericht.fehler || bericht.gefunden === 0 || (schnitt != null && bericht.gefunden < schnitt * 0.4));
+      const schlecht =
+        !kontingent &&
+        (!!bericht.fehler ||
+          (bericht.gefunden === 0 && !q.leerOk) ||
+          (schnitt != null && schnitt >= 5 && bericht.gefunden < schnitt * 0.4));
       const neuerSchnitt = bericht.fehler ? schnitt : schnitt == null ? bericht.gefunden : schnitt * 0.7 + bericht.gefunden * 0.3;
       await pool.query(
         `UPDATE quellen SET letzter_lauf = now(), gefunden_letzter_lauf = $2, durchschnitt = $3,
@@ -113,7 +123,7 @@ async function main() {
     const { rows: warnungen } = await pool.query("SELECT id, name, schlechte_naechte FROM quellen WHERE schlechte_naechte >= 2 AND aktiv");
     await pool.query("UPDATE sammler_laeufe SET beendet = now(), bericht = $2 WHERE id = $1", [
       laufId,
-      JSON.stringify({ quellen: berichte, warnungen }),
+      JSON.stringify({ quellen: berichte, warnungen, teil: !!nurQuelle }),
     ]);
     if (warnungen.length) log(`\n⚠ Quellen mit Problemen: ${warnungen.map((w) => w.name).join(", ")}`);
     const { rows } = await pool.query("SELECT count(*)::int n FROM events WHERE coalesce(ende, beginn) >= now() AND status <> 'verschwunden'");

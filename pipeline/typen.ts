@@ -40,6 +40,8 @@ export interface Quelle {
   land: "AT" | "SI" | "IT";
   /** Bis zu wie vielen Tagen in die Zukunft die Quelle zuverlässig alles liefert (für „verschwunden“-Erkennung). */
   horizontTage: number;
+  /** Darf in manchen Nächten 0 Termine liefern, ohne als „Problem“ zu gelten (kleine Gemeinden). */
+  leerOk?: boolean;
   holen(kontext: Kontext): Promise<QuellenErgebnis>;
 }
 
