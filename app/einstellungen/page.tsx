@@ -85,7 +85,7 @@ export default function Einstellungen() {
 
       <Karte titel="Was interessiert dich?" text="Diese Themen erscheinen unter „Für dich“.">
         <div className="flex flex-wrap gap-2">
-          {KATEGORIEN.filter((k) => k.id !== "sonstiges").map((k) => {
+          {KATEGORIEN.map((k) => {
             const Icon = KATEGORIE_ICON[k.id];
             const an = e.interessen.includes(k.id);
             return (

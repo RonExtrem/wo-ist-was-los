@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LoaderCircle, Search, SlidersHorizontal, X, RotateCcw, Sparkles } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
@@ -24,18 +24,12 @@ type ZeitId = (typeof ZEITEN)[number]["id"];
 const UMKREISE = ["10", "25", "50", "100", "150", "alle"] as const;
 
 function Chip({ an, onClick, children }: { an: boolean; onClick: () => void; children: React.ReactNode }) {
-  const ref = useRef<HTMLButtonElement>(null);
-  // Gewählter Knopf rückt in waagrechten Reihen ins Bild
-  useEffect(() => {
-    if (an) ref.current?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
-  }, [an]);
   return (
     <button
-      ref={ref}
       type="button"
       onClick={onClick}
       aria-pressed={an}
-      className={`flex min-h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[0.95rem] font-semibold transition-colors ${
+      className={`flex min-h-12 items-center gap-2 rounded-full px-4 text-[0.95rem] font-semibold transition-colors ${
         an ? "bg-see text-white shadow" : "bg-flaeche text-foreground ring-1 ring-linie hover:bg-see-zart"
       }`}
     >
@@ -48,7 +42,7 @@ function Reihe({ titel, children }: { titel: string; children: React.ReactNode }
   return (
     <div className="mt-4">
       <p className="mb-2 text-[0.9rem] font-semibold text-gedaempft">{titel}</p>
-      <div className="ohne-balken -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">{children}</div>
+      <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
 }

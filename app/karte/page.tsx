@@ -26,26 +26,11 @@ import { KATEGORIEN } from "@/lib/kategorien";
 import { KATEGORIE_ICON } from "@/components/KategorieBild";
 import { imSuchgebiet } from "@/lib/suchgebiet";
 
-// Kurze Namen für die Auswahl über der Karte
-const KURZ: Record<string, string> = {
-  "messen-maerkte": "Messen & Märkte",
-  "schlager-volksmusik": "Schlager & Volksmusik",
-  "feste-brauchtum": "Feste & Kirchtage",
-  "kulinarik-wein": "Kulinarik & Wein",
-  advent: "Advent & Christkindlmärkte",
-  "pop-rock-party": "Pop, Rock & Party",
-  "klassik-kultur": "Kultur & Theater",
-  sport: "Sport",
-  "familie-kinder": "Familie & Kinder",
-  "oldtimer-technik": "Oldtimer & Technik",
-  "natur-ausfluege": "Natur & Ausflüge",
-  sonstiges: "Sonstiges",
-};
 const SATELLIT_SCHLUESSEL = "wiwl-karte-satellit";
 
 const ZEITEN = [
   { id: "heute-morgen", text: "Heute & morgen" },
-  { id: "wochenende", text: "Wochenende" },
+  { id: "wochenende", text: "Wochen­ende" }, // weiches Trennzeichen: bricht in der schmalen Spalte um
   { id: "monat", text: "30 Tage" },
   { id: "drei-monate", text: "3 Monate" },
 ] as const;
@@ -76,7 +61,7 @@ function Chip({
       type="button"
       aria-pressed={an}
       onClick={onClick}
-      className={`flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 text-[0.95rem] font-semibold shadow-md transition-colors ${
+      className={`flex min-h-11 items-center justify-center rounded-2xl px-1.5 py-1 text-center text-[0.9rem] font-semibold leading-tight shadow-md transition-colors ${
         an
           ? "bg-see text-white"
           : "bg-flaeche/95 text-foreground ring-1 ring-linie backdrop-blur"
@@ -228,15 +213,13 @@ export default function KartenSeite() {
   const { events, laedt } = useEvents(abfrage);
 
   const alle = useMemo(() => events ?? [], [events]);
-  // Welche Kategorien kommen in diesem Zeitraum/Umkreis vor? (meiste zuerst)
+  // Immer alle Kategorien in fester Reihenfolge – mit Anzahl im gewählten Zeitraum/Umkreis (auch 0)
   const vorhandene = useMemo(() => {
     const zahl = new Map<string, number>();
     for (const e of alle)
       for (const k of new Set(e.kategorien))
         zahl.set(k, (zahl.get(k) ?? 0) + 1);
-    return KATEGORIEN.filter((k) => zahl.has(k.id))
-      .map((k) => ({ ...k, anzahl: zahl.get(k.id)! }))
-      .sort((a, b) => b.anzahl - a.anzahl);
+    return KATEGORIEN.map((k) => ({ ...k, anzahl: zahl.get(k.id) ?? 0 }));
   }, [alle]);
   const liste = useMemo(
     () =>
@@ -319,7 +302,7 @@ export default function KartenSeite() {
     kategorien.length === 0
       ? "Alle Arten"
       : kategorien.length === 1
-        ? (KURZ[kategorien[0]] ?? "1 Art")
+        ? (KATEGORIEN.find((k) => k.id === kategorien[0])?.name ?? "1 Art")
         : `${kategorien.length} Arten`;
 
   return (
@@ -361,7 +344,7 @@ export default function KartenSeite() {
             </div>
           ) : (
             <>
-              <div className="ohne-balken pointer-events-auto flex gap-2 overflow-x-auto px-4 pb-1">
+              <div className="pointer-events-auto grid grid-cols-4 gap-1.5 px-4">
                 {ZEITEN.map((z) => (
                   <Chip
                     key={z.id}
@@ -614,11 +597,6 @@ export default function KartenSeite() {
           </div>
         }
       >
-        {vorhandene.length === 0 && (
-          <p className="px-3 py-4 text-gedaempft">
-            Im gewählten Gebiet und Zeitraum gibt es gerade nichts.
-          </p>
-        )}
         <ul className="flex flex-col gap-1">
           {vorhandene.map((k) => {
             const Icon = KATEGORIE_ICON[k.id];
@@ -647,7 +625,7 @@ export default function KartenSeite() {
                       />
                     )}
                   </span>
-                  <span className="flex-1">{KURZ[k.id] ?? k.name}</span>
+                  <span className={`flex-1 ${k.anzahl === 0 && !an ? "text-gedaempft" : ""}`}>{k.name}</span>
                   <span className="text-[0.95rem] font-normal text-gedaempft">
                     {k.anzahl}
                   </span>

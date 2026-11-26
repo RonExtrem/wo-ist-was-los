@@ -42,7 +42,7 @@ export function StartpunktWahl({ hell = false }: { hell?: boolean }) {
   };
 
   const knopf = (aktiv: boolean) =>
-    `flex min-h-12 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[0.95rem] font-semibold transition-colors ${
+    `flex min-h-12 max-w-full items-center gap-2 rounded-full px-4 text-[0.95rem] font-semibold transition-colors ${
       aktiv
         ? hell
           ? "bg-white text-[#08525a] shadow"
@@ -55,7 +55,7 @@ export function StartpunktWahl({ hell = false }: { hell?: boolean }) {
   return (
     <div>
       <p className={`mb-2 text-[0.9rem] font-semibold ${hell ? "text-white/90" : "text-gedaempft"}`}>Entfernung messen ab:</p>
-      <div className="ohne-balken -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+      <div className="flex flex-wrap gap-2">
         <button type="button" onClick={daheim} className={knopf(startpunkt.art === "daheim")} aria-pressed={startpunkt.art === "daheim"}>
           <House className="h-5 w-5" /> Daheim · {einstellungen.wohnortName.replace(" an der Drau", "")}
         </button>
@@ -123,15 +123,26 @@ export function OrtSuche({
 
   useEffect(() => {
     if (!genug) return;
+    // Ältere, langsamere Antworten (z. B. für „95“ statt „9500“) dürfen die neuen Treffer nicht überschreiben
+    const abbruch = new AbortController();
     const t = setTimeout(() => {
       setLaedt(true);
-      fetch(`/api/ort?q=${encodeURIComponent(text.trim())}&lat=${naehe.lat.toFixed(3)}&lng=${naehe.lng.toFixed(3)}`)
+      fetch(`/api/ort?q=${encodeURIComponent(text.trim())}&lat=${naehe.lat.toFixed(3)}&lng=${naehe.lng.toFixed(3)}`, {
+        signal: abbruch.signal,
+      })
         .then((r) => r.json())
         .then((d: { orte: OrtTreffer[] }) => setTreffer(d.orte ?? []))
-        .catch(() => setTreffer([]))
-        .finally(() => setLaedt(false));
+        .catch(() => {
+          if (!abbruch.signal.aborted) setTreffer([]);
+        })
+        .finally(() => {
+          if (!abbruch.signal.aborted) setLaedt(false);
+        });
     }, 450);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      abbruch.abort();
+    };
   }, [text, genug, naehe.lat, naehe.lng]);
 
   return (

@@ -29,6 +29,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Android-Tastatur schiebt Fenster von unten (z. B. Ortssuche) nach oben, statt die Treffer zu verdecken
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

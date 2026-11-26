@@ -90,15 +90,16 @@ export default function Startseite() {
             Umkreis <strong className="text-foreground">{umkreis} km</strong> um <strong className="text-foreground">{startpunkt.name}</strong>
           </p>
           {teile && (
-            <div className="ohne-balken -mx-1 mt-3 flex gap-2 overflow-x-auto px-1">
+            <div className="mt-3 grid grid-cols-3 gap-2">
               {(["AT", "SI", "IT"] as const).map((l) => (
                 <Link
                   key={l}
                   href={`/suchen?land=${l}&radius=150&zeit=drei-monate`}
-                  className="flex min-h-12 items-center gap-2 whitespace-nowrap rounded-full bg-flaeche-2 px-4 font-semibold hover:bg-see-zart"
+                  className="flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-2xl bg-flaeche-2 px-1 py-2 text-center text-[0.95rem] font-semibold leading-tight hover:bg-see-zart"
                 >
-                  <span aria-hidden>{LAENDER[l].flagge}</span> {LAENDER[l].name}
-                  <span className="rounded-full bg-flaeche px-2 text-[0.85rem] text-gedaempft">{teile.laender[l] ?? 0}</span>
+                  <span aria-hidden className="text-xl leading-none">{LAENDER[l].flagge}</span>
+                  <span>{LAENDER[l].name}</span>
+                  <span className="text-[0.85rem] font-normal text-gedaempft">{teile.laender[l] ?? 0}</span>
                 </Link>
               ))}
             </div>
