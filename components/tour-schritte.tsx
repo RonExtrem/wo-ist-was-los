@@ -21,8 +21,7 @@ export const TOUR: TourSchritt[] = [
     titel: "Willkommen zur Tour 👋",
     text: (
       <>
-        In ungefähr <strong>2 Minuten</strong> zeige ich dir alles, was die App kann. Ein paar Mal tippst du selbst – so lernt man es am
-        schnellsten. Du kannst jederzeit mit dem <strong>X</strong> aufhören.
+        In <strong>2 Minuten</strong> zeige ich dir alles. Ein paar Mal tippst du selbst. Mit dem <strong>X</strong> hörst du jederzeit auf.
       </>
     ),
   },
@@ -32,8 +31,8 @@ export const TOUR: TourSchritt[] = [
     titel: "Von wo aus suchen?",
     text: (
       <>
-        Normalerweise misst die App Entfernungen ab <strong>daheim</strong>. Bist du unterwegs, tippst du auf <strong>„Wo ich gerade bin“</strong>
-        . Mit <strong>„Anderer Ort“</strong> suchst du rund um einen beliebigen Ort – auch per Postleitzahl.
+        Die App misst ab <strong>daheim</strong>. Unterwegs: <strong>„Wo ich gerade bin“</strong>. Oder <strong>„Anderer Ort“</strong> – auch per
+        Postleitzahl.
       </>
     ),
   },
@@ -41,7 +40,7 @@ export const TOUR: TourSchritt[] = [
     seite: "/",
     ziel: '[data-tour="laender"]',
     titel: "Österreich, Slowenien, Italien",
-    text: "Die Zahl sagt, wie viele Veranstaltungen es in deiner Gegend im jeweiligen Land gibt. Antippen zeigt nur dieses Land.",
+    text: "Wie viele Veranstaltungen es in deiner Gegend pro Land gibt. Antippen zeigt nur dieses Land.",
   },
   {
     seite: "/",
@@ -49,8 +48,7 @@ export const TOUR: TourSchritt[] = [
     titel: "So, wie es dir gefällt",
     text: (
       <>
-        <strong>Groß</strong> zeigt große Bilder, <strong>Kacheln</strong> zwei nebeneinander, <strong>Liste</strong> möglichst viele auf
-        einmal. Die App merkt sich deine Wahl.
+        <strong>Groß</strong> mit Bildern, <strong>Kacheln</strong> zwei nebeneinander, <strong>Liste</strong> möglichst viele auf einmal.
       </>
     ),
   },
@@ -58,7 +56,7 @@ export const TOUR: TourSchritt[] = [
     seite: "/",
     ziel: '[data-tour="abschnitt"] li',
     titel: "Eine Veranstaltung",
-    text: "Antippen öffnet alle Details: Uhrzeit, Ort, Wetter, Fahrzeit, Route, „In Kalender eintragen“ und den Link zur Originalseite.",
+    text: "Antippen zeigt alles: Uhrzeit, Wetter, Fahrzeit, Route, Kalender und die Originalseite.",
   },
   {
     seite: "/",
@@ -66,8 +64,7 @@ export const TOUR: TourSchritt[] = [
     titel: "Das Herz ♥ = merken",
     text: (
       <>
-        Mit dem Herz merkst du dir eine Veranstaltung. Die App fragt dann, ob sie dich <strong>am Vortag und am Tag selbst erinnern</strong>{" "}
-        soll. Wird etwas abgesagt oder verschoben, bekommst du Bescheid.
+        Merkt die Veranstaltung. Auf Wunsch <strong>erinnert</strong> dich die App am Vortag und am Tag selbst – und meldet Absagen.
       </>
     ),
   },
@@ -83,13 +80,13 @@ export const TOUR: TourSchritt[] = [
     seite: "/suchen",
     ziel: 'input[aria-label="Suchbegriff"]',
     titel: "Nach etwas suchen",
-    text: "Hier kannst du ein Wort eintippen, zum Beispiel „Kirchtag“, „Krampus“ oder einen Ortsnamen.",
+    text: "Ein Wort eintippen, z. B. „Kirchtag“, „Krampus“ oder einen Ort.",
   },
   {
     seite: "/suchen",
     ziel: '[data-tour="wann"]',
     titel: "Wann?",
-    text: "Wähle den Zeitraum: heute & morgen, das Wochenende oder länger voraus.",
+    text: "Der Zeitraum: heute & morgen, Wochenende oder länger.",
   },
   {
     seite: "/suchen",
@@ -101,7 +98,7 @@ export const TOUR: TourSchritt[] = [
     seite: "/suchen",
     ziel: '[data-tour="mehr-filter"]',
     titel: "Was & wo genau?",
-    text: "Hier wählst du Themen (zum Beispiel nur Advent oder nur Schlager), Länder und „nur gratis“.",
+    text: "Themen (z. B. nur Advent), Länder und „nur gratis“.",
   },
   {
     seite: "/suchen",
@@ -115,15 +112,15 @@ export const TOUR: TourSchritt[] = [
     seite: "/karte",
     ziel: '[data-tour="karte-filter"]',
     titel: "Oben wählst du aus",
-    text: "Zeitraum, Ort, Umkreis und welche Arten von Veranstaltungen auf der Karte erscheinen.",
+    text: "Zeitraum, Ort, Umkreis und welche Arten auf der Karte erscheinen.",
   },
   {
     seite: "/karte",
     titel: "Die Zahlen im Kreis",
     text: (
       <>
-        Liegen viele Veranstaltungen nah beieinander, fasst die Karte sie zu einem <strong>Kreis mit Zahl</strong> zusammen. Tippst du ihn
-        an, kommt unten die Liste – mit „Auf der Karte zeigen“ zoomst du genau hin. Zurück-Taste schließt die Liste wieder.
+        Viele Veranstaltungen nah beieinander werden zu einem <strong>Kreis mit Zahl</strong>. Antippen zeigt sie als Liste, „Auf der Karte
+        zeigen“ zoomt hin. Die Zurück-Taste schließt die Liste.
       </>
     ),
   },
@@ -131,7 +128,7 @@ export const TOUR: TourSchritt[] = [
     seite: "/karte",
     ziel: 'button[aria-label="Ort auf der Karte antippen"]',
     titel: "Ort direkt antippen",
-    text: "Mit diesem Knopf tippst du danach irgendwo auf die Karte – dort wird dann gesucht. Die rote Linie zeigt das Gebiet der App.",
+    text: "Danach irgendwo auf die Karte tippen – dort wird gesucht. Die rote Linie zeigt das Gebiet der App.",
   },
   {
     seite: "/karte",
@@ -151,7 +148,7 @@ export const TOUR: TourSchritt[] = [
     seite: "/meine",
     ziel: "main h1",
     titel: "Meine Events",
-    text: "Alle Veranstaltungen mit Herz, nach Datum sortiert. Was schon vorbei ist, steht ausgegraut darunter.",
+    text: "Alles mit Herz, nach Datum. Vergangenes steht ausgegraut darunter.",
   },
   {
     seite: "/meine",
@@ -159,9 +156,8 @@ export const TOUR: TourSchritt[] = [
     titel: "Selbst eintragen",
     text: (
       <>
-        Fehlt dir etwas? Hier trägst du eine Veranstaltung selbst ein. Noch einfacher: Siehst du in <strong>Facebook, WhatsApp</strong> oder im
-        Internet ein Fest, tippst du dort auf <strong>„Teilen“</strong> und wählst <strong>„Wo is wos los?“</strong> – die App füllt dann
-        alles für dich aus.
+        Fehlt etwas? Hier selbst eintragen. Oder in <strong>Facebook/WhatsApp</strong> auf <strong>„Teilen“</strong> →{" "}
+        <strong>„Wo is wos los?“</strong> – die App füllt alles aus.
       </>
     ),
   },
@@ -185,8 +181,8 @@ export const TOUR: TourSchritt[] = [
     titel: "Deine Einstellungen",
     text: (
       <>
-        Hier änderst du deinen Namen, wo du daheim bist, wie weit du fährst, deine Interessen, die <strong>Erinnerungen aufs Handy</strong>{" "}
-        und die <strong>Schriftgröße</strong>. Ganz oben unter <strong>„Hilfe“</strong> kannst du diese Tour jederzeit nochmal starten.
+        Name, Daheim, Umkreis, Interessen, <strong>Erinnerungen</strong> und <strong>Schriftgröße</strong>. Ganz oben unter{" "}
+        <strong>„Hilfe“</strong> startest du diese Tour jederzeit neu.
       </>
     ),
   },
@@ -195,9 +191,8 @@ export const TOUR: TourSchritt[] = [
     titel: "Woher kommen die Veranstaltungen?",
     text: (
       <>
-        Jede <strong>Nacht</strong> sammelt die App automatisch neue Veranstaltungen von vielen Seiten – Gemeinden, Bezirksblättern,
-        Tourismus-Seiten in Österreich, Slowenien und Italien. <strong>In der Früh</strong> ist alles aktuell. Vorbei ist vorbei: Alte
-        Veranstaltungen verschwinden von selbst.
+        Jede <strong>Nacht</strong> sammelt die App neue Veranstaltungen von Gemeinden, Bezirksblättern und Tourismus-Seiten in Österreich,
+        Slowenien und Italien. <strong>In der Früh</strong> ist alles aktuell, Vergangenes verschwindet von selbst.
       </>
     ),
   },

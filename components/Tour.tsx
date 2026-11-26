@@ -1,7 +1,7 @@
 "use client";
 
 // Geführte Tour: hebt echte Knöpfe hervor (Rest abgedunkelt) und erklärt sie. Bei Mitmach-Schritten tippt man selbst.
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { ChevronLeft, ChevronRight, Hand, X } from "lucide-react";
@@ -17,10 +17,35 @@ interface Rahmen {
 }
 
 const RAND = 8; // Luft um das hervorgehobene Element
+const ABSTAND = 16; // Mindestabstand des Erklärfensters zum Bildschirmrand
+const LEISTE = 76; // Höhe der unteren Leiste (ungefähr)
+
+/** Liegt das Element in etwas Festem (untere Leiste, Karte)? Dann hilft Scrollen nichts. */
+function istFixiert(el: Element): boolean {
+  for (let n: Element | null = el; n && n !== document.body; n = n.parentElement) {
+    if (getComputedStyle(n).position === "fixed") return true;
+  }
+  return false;
+}
 
 export function Tour() {
   const schritt = useSyncExternalStore(tourAbo, tourSchritt, () => null);
-  if (schritt == null || schritt >= TOUR.length) return null;
+  const laeuft = schritt != null && schritt < TOUR.length;
+
+  // Während der Tour lässt sich die Seite nicht verschieben – die Tour rückt selbst alles ins Bild
+  useEffect(() => {
+    if (!laeuft) return;
+    const html = document.documentElement;
+    const vorher = { overflow: html.style.overflow, overscroll: html.style.overscrollBehavior };
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    return () => {
+      html.style.overflow = vorher.overflow;
+      html.style.overscrollBehavior = vorher.overscroll;
+    };
+  }, [laeuft]);
+
+  if (!laeuft) return null;
   return <TourSchrittAnzeige key={schritt} nr={schritt} />;
 }
 
@@ -32,7 +57,18 @@ function TourSchrittAnzeige({ nr }: { nr: number }) {
   const [rahmen, setRahmen] = useState<Rahmen | null>(null);
   const [gesucht, setGesucht] = useState(false);
   const [fenster, setFenster] = useState({ w: 0, h: 0 });
+  const karte = useRef<HTMLDivElement>(null);
+  const [kartenHoehe, setKartenHoehe] = useState(300);
   const richtigeSeite = pfad === s.seite;
+
+  // Höhe des Erklärfensters kennen, damit es nie über den Rand ragt
+  useEffect(() => {
+    const el = karte.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setKartenHoehe(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
 
   const beenden = useCallback(
     (fertig: boolean) => {
@@ -56,7 +92,7 @@ function TourSchrittAnzeige({ nr }: { nr: number }) {
     if (s.tippen && pfad === s.tippen.weiterBei) weiter();
   }, [pfad, s.tippen, weiter]);
 
-  // Ziel suchen, ins Bild holen und laufend nachmessen (Inhalte laden nach, Seite scrollt …)
+  // Ziel suchen, passend ins Bild rücken und nachmessen (Inhalte können nachladen)
   useEffect(() => {
     if (!richtigeSeite) return;
     let gescrollt = false;
@@ -75,15 +111,31 @@ function TourSchrittAnzeige({ nr }: { nr: number }) {
       }
       if (!gescrollt) {
         gescrollt = true;
-        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        if (!istFixiert(el)) {
+          // Ziel weit nach oben, damit das Erklärfenster darunter Platz hat – sofort, ohne Ruckeln
+          const r0 = el.getBoundingClientRect();
+          const h = window.innerHeight;
+          const passtDarunter = 80 + r0.height + 2 * RAND + 12 + 290 <= h - ABSTAND;
+          const zielOben = passtDarunter ? 80 : Math.max(ABSTAND, (h - LEISTE - r0.height) / 2);
+          window.scrollBy({ top: r0.top - zielOben, behavior: "instant" });
+        }
       }
       const r = el.getBoundingClientRect();
       if (r.width === 0 && r.height === 0) return;
-      setRahmen({ top: r.top - RAND, left: r.left - RAND, width: r.width + 2 * RAND, height: r.height + 2 * RAND });
+      // Leuchtrahmen im Bild halten (z. B. untere Leiste oder Kartenleiste ganz oben)
+      const oben = Math.max(r.top - RAND, 3);
+      const unten = Math.min(r.bottom + RAND, window.innerHeight - 3);
+      const neu = { top: oben, left: r.left - RAND, width: r.width + 2 * RAND, height: Math.max(unten - oben, 0) };
+      // Nur bei echter Änderung neu zeichnen (verhindert Zittern)
+      setRahmen((alt) =>
+        alt && Math.abs(alt.top - neu.top) < 1 && Math.abs(alt.left - neu.left) < 1 && Math.abs(alt.height - neu.height) < 1 && Math.abs(alt.width - neu.width) < 1
+          ? alt
+          : neu
+      );
       setGesucht(true);
     };
     const erstes = requestAnimationFrame(messen);
-    const t = setInterval(messen, 250);
+    const t = setInterval(messen, 400);
     window.addEventListener("resize", messen);
     return () => {
       cancelAnimationFrame(erstes);
@@ -97,29 +149,28 @@ function TourSchrittAnzeige({ nr }: { nr: number }) {
     return <div className="fixed inset-0 z-[80] bg-[rgba(4,18,22,0.55)]" aria-hidden />;
   }
 
-  // Erklärfenster unter oder über dem Ziel – wo mehr Platz ist
-  const platzUnten = rahmen ? fenster.h - (rahmen.top + rahmen.height) : 0;
-  const platzOben = rahmen ? rahmen.top : 0;
-  const karteUnten = rahmen ? platzUnten >= platzOben : null;
-  // Äußere Hülle positioniert (ohne Animation), innen wird nur eingeblendet – sonst überschreibt die Animation die Lage
-  const kartenStil: React.CSSProperties = !rahmen
-    ? { top: 0, bottom: 0 }
-    : karteUnten
-      ? { top: rahmen.top + rahmen.height + 12 }
-      : { bottom: fenster.h - rahmen.top + 12 };
+  // Erklärfenster: unter dem Ziel, sonst darüber – und immer ganz im Bild
+  let kartenStil: React.CSSProperties = { top: 0, bottom: 0 };
+  if (rahmen) {
+    const unten = rahmen.top + rahmen.height + 12;
+    const oben = rahmen.top - 12 - kartenHoehe;
+    const maxTop = fenster.h - kartenHoehe - ABSTAND;
+    let top: number;
+    if (unten <= maxTop) top = unten;
+    else if (oben >= ABSTAND) top = oben;
+    else top = fenster.h - (rahmen.top + rahmen.height) > rahmen.top ? maxTop : ABSTAND; // zur Not über das Ziel, aber im Bild
+    kartenStil = { top: Math.max(ABSTAND, Math.min(top, maxTop)) };
+  }
 
-  const sperre = "fixed z-[80] pointer-events-auto";
+  const sperre = "fixed z-[80] pointer-events-auto touch-none";
   return (
     <>
       {/* Abdunkeln mit Loch um das Ziel */}
       {rahmen ? (
-        <motion.div
+        <div
           aria-hidden
           className={`pointer-events-none fixed z-[80] rounded-2xl ring-[3px] ring-see ${s.tippen ? "tour-puls" : ""}`}
-          initial={false}
-          animate={{ top: rahmen.top, left: rahmen.left, width: rahmen.width, height: rahmen.height }}
-          transition={{ type: "spring", stiffness: 400, damping: 40 }}
-          style={{ boxShadow: "0 0 0 200vmax rgba(4,18,22,0.72)" }}
+          style={{ ...rahmen, boxShadow: "0 0 0 200vmax rgba(4,18,22,0.72)" }}
         />
       ) : (
         <div aria-hidden className="pointer-events-none fixed inset-0 z-[80] bg-[rgba(4,18,22,0.72)]" />
@@ -146,7 +197,8 @@ function TourSchrittAnzeige({ nr }: { nr: number }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="pointer-events-auto w-full max-w-md rounded-3xl bg-flaeche p-5 text-foreground shadow-2xl ring-1 ring-linie"
+          ref={karte}
+          className="pointer-events-auto max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl bg-flaeche px-4 pb-4 pt-3 text-foreground shadow-2xl ring-1 ring-linie"
         >
           <div className="flex items-center gap-3">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-flaeche-2" aria-label={`Schritt ${nr + 1} von ${TOUR.length}`}>
@@ -164,11 +216,11 @@ function TourSchrittAnzeige({ nr }: { nr: number }) {
               <X className="h-6 w-6" />
             </button>
           </div>
-          <h2 className="mt-2 font-titel text-[1.45rem] leading-tight">{s.titel}</h2>
-          <p className="mt-2 text-[1.02rem] leading-relaxed">{s.text}</p>
+          <h2 className="mt-1 font-titel text-[1.3rem] leading-tight">{s.titel}</h2>
+          <p className="mt-1.5 text-[1rem] leading-snug">{s.text}</p>
 
           {s.tippen ? (
-            <div className="mt-4">
+            <div className="mt-3">
               <p className="flex min-h-12 items-center gap-2 rounded-2xl bg-see-zart px-4 font-bold text-see">
                 <Hand className="h-6 w-6 shrink-0 animate-bounce" /> {s.tippen.hinweis}
               </p>
@@ -181,7 +233,7 @@ function TourSchrittAnzeige({ nr }: { nr: number }) {
               </button>
             </div>
           ) : (
-            <div className="mt-4 flex gap-2">
+            <div className="mt-3 flex gap-2">
               {nr > 0 && (
                 <button
                   type="button"
