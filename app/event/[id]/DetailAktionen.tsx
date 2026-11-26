@@ -29,25 +29,6 @@ export function DetailBild({ src, kategorie }: { src: string; kategorie: string 
   return <img src={src} alt="" referrerPolicy="no-referrer" onError={() => setKaputt(true)} className="h-full w-full object-cover" />;
 }
 
-function km(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const r = 6371;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const x = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * r * Math.asin(Math.sqrt(x));
-}
-
-export function EntfernungZeile({ lat, lng }: { lat: number; lng: number }) {
-  const { startpunkt, bereit } = useApp();
-  if (!bereit) return null;
-  const d = km(startpunkt, { lat, lng });
-  return (
-    <p className="mt-1 font-semibold text-laerche">
-      ca. {Math.round(d)} km Luftlinie von {startpunkt.art === "hier" ? "deinem Standort" : startpunkt.name}
-    </p>
-  );
-}
-
 /** Google-Kalender-Link (öffnet am Android-Handy direkt den Kalender). */
 function kalenderLink(e: EventDetail): string {
   const f = (iso: string) => iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");

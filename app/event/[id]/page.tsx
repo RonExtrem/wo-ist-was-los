@@ -5,7 +5,8 @@ import { ladeEvent } from "@/lib/events-server";
 import { KategorieBild, kategorieInfo, KATEGORIE_ICON } from "@/components/KategorieBild";
 import { LAENDER } from "@/lib/event-typ";
 import { laeuftGerade, tagText, zeitText } from "@/lib/datum";
-import { DetailAktionen, ZurueckKnopf, EntfernungZeile, DetailBild } from "./DetailAktionen";
+import { DetailAktionen, ZurueckKnopf, DetailBild } from "./DetailAktionen";
+import { FahrzeitZeile, WetterKasten } from "./Unterwegs";
 
 export default function EventSeite({ params }: { params: Promise<{ id: string }> }) {
   return (
@@ -77,7 +78,7 @@ async function EventInhalt({ params }: { params: Promise<{ id: string }> }) {
                 {e.ortName}
               </p>
               {e.adresse && <p className="text-gedaempft">{e.adresse}</p>}
-              {e.lat != null && e.lng != null && <EntfernungZeile lat={e.lat} lng={e.lng} />}
+              {e.lat != null && e.lng != null && <FahrzeitZeile lat={e.lat} lng={e.lng} />}
             </div>
           </div>
           {(e.preisText || e.gratis) && (
@@ -87,6 +88,10 @@ async function EventInhalt({ params }: { params: Promise<{ id: string }> }) {
             </div>
           )}
         </div>
+
+        {e.lat != null && e.lng != null && (
+          <WetterKasten lat={e.lat} lng={e.lng} beginn={e.beginn} ende={e.ende} freiluft={e.freiluft} />
+        )}
 
         {e.kurzbeschreibung && <p className="mt-5 text-[1.1rem] leading-relaxed">{e.kurzbeschreibung}</p>}
         {sprache && (
