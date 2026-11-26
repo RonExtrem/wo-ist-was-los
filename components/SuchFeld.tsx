@@ -161,7 +161,10 @@ export function SuchFeld({
           className="min-w-0 flex-1"
           onSubmit={(ev) => {
             ev.preventDefault();
-            if (genug || !sauber) anwenden(text);
+            // Lupe auf der Tastatur: nur Tastatur weg, im Such-Bildschirm bei den Treffern bleiben.
+            // In die normale Liste geht es mit „Als Liste“.
+            if (offen) eingabe.current?.blur();
+            else anwenden(text);
           }}
         >
           <label className="flex min-h-14 items-center gap-3 rounded-2xl bg-flaeche px-4 shadow-karte ring-1 ring-linie focus-within:ring-2 focus-within:ring-see">
