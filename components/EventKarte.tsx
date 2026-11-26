@@ -58,11 +58,14 @@ export function EventKarte({
   index = 0,
   zeigeTag = true,
   ansicht = "gross",
+  mitBild = false,
 }: {
   event: EventKurz;
   index?: number;
   zeigeTag?: boolean;
   ansicht?: Ansicht;
+  /** Liste mit kleinem Bild statt Kalenderblatt (Datum steht dann in der Zeile) */
+  mitBild?: boolean;
 }) {
   const hauptKat = event.kategorien[0] ?? "sonstiges";
   const kat = kategorieInfo(hauptKat);
@@ -90,7 +93,11 @@ export function EventKarte({
   if (ansicht === "liste") {
     return huelle(
       <div className="flex items-center gap-3 py-3 pl-3 pr-14">
-        {zeigeTag ? (
+        {mitBild ? (
+          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl">
+            <Bild event={event} kat={hauptKat} className="h-full w-full" />
+          </div>
+        ) : zeigeTag ? (
           <Kalenderblatt iso={event.beginn} klein />
         ) : (
           <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl">
@@ -104,6 +111,8 @@ export function EventKarte({
               <strong className="text-laerche">
                 läuft bis {kalenderblatt(event.ende).tag}. {kalenderblatt(event.ende).monat}
               </strong>
+            ) : mitBild ? (
+              wann
             ) : (
               zeitText(event)
             )}

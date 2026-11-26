@@ -15,6 +15,7 @@ import {
   LocateFixed,
   Pointer,
   Check,
+  ZoomIn,
 } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
 import { useEvents } from "@/lib/client/use-events";
@@ -27,6 +28,7 @@ import { KATEGORIE_ICON } from "@/components/KategorieBild";
 import { imSuchgebiet } from "@/lib/suchgebiet";
 
 const SATELLIT_SCHLUESSEL = "wiwl-karte-satellit";
+const TIPP_SCHLUESSEL = "wiwl-karte-zahlen-tipp";
 
 const ZEITEN = [
   { id: "heute-morgen", text: "Heute & morgen" },
@@ -187,6 +189,22 @@ export default function KartenSeite() {
       return false;
     }
   });
+  // Kurze Erklärung der Zahlen-Kreise, bis man zum ersten Mal einen angetippt hat
+  const [tippGesehen, setTippGesehenRoh] = useState(() => {
+    try {
+      return typeof window === "undefined" || localStorage.getItem(TIPP_SCHLUESSEL) === "1";
+    } catch {
+      return true;
+    }
+  });
+  const setTippGesehen = useCallback((v: boolean) => {
+    setTippGesehenRoh(v);
+    try {
+      localStorage.setItem(TIPP_SCHLUESSEL, v ? "1" : "0");
+    } catch {
+      /* egal */
+    }
+  }, []);
   const satellitUmschalten = () => {
     setSatellit((v) => {
       try {
@@ -244,7 +262,13 @@ export default function KartenSeite() {
     () => ({ lat: startpunkt.lat, lng: startpunkt.lng, name: startpunkt.name }),
     [startpunkt.lat, startpunkt.lng, startpunkt.name],
   );
-  const waehle = useCallback((ids: string[]) => setAuswahl(ids), []);
+  // Bei einer Gruppe merkt sich die Seite, wie man genau auf diese Punkte zoomt
+  const [zoomen, setZoomen] = useState<(() => void) | null>(null);
+  const waehle = useCallback((ids: string[], zoom?: () => void) => {
+    setAuswahl(ids);
+    setZoomen(() => zoom ?? null);
+    if (zoom) setTippGesehen(true);
+  }, [setTippGesehen]);
 
   // Punkt auf der Karte gewählt → dort suchen, Ortsname nachladen
   const kartenTipp = useCallback(
@@ -396,6 +420,24 @@ export default function KartenSeite() {
                   `${liste.length} ${kategorien.length ? "passende " : ""}Veranstaltungen`
                 )}
               </p>
+              {bereit && !tippGesehen && events && liste.length > 0 && (
+                <div className="pointer-events-auto mx-4 mt-2 flex max-w-sm items-start gap-2 rounded-2xl bg-flaeche/95 p-3 text-[0.95rem] shadow-md ring-1 ring-linie backdrop-blur">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-see/70 text-[0.8rem] font-bold text-white ring-2 ring-white">
+                    12
+                  </span>
+                  <p className="flex-1 leading-snug">
+                    Die <strong>Zahl im Kreis</strong> sagt, wie viele Veranstaltungen dort sind. Antippen zeigt sie als Liste.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setTippGesehen(true)}
+                    aria-label="Hinweis schließen"
+                    className="-m-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -442,12 +484,24 @@ export default function KartenSeite() {
         {/* Ausgewählte Veranstaltung(en) unten */}
         {gewaehlt.length > 0 && (
           <div className="absolute inset-x-0 bottom-0 z-10 max-h-[55%] overflow-y-auto rounded-t-3xl bg-background/97 px-4 pb-4 pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.18)] backdrop-blur">
-            <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between bg-background/97 px-4 py-2">
-              <p className="font-titel text-lg">
+            <div className="sticky top-0 z-10 -mx-4 flex items-center gap-2 bg-background/97 px-4 py-2">
+              <p className="flex-1 font-titel text-lg leading-tight">
                 {gewaehlt.length === 1
                   ? "Hier ist was los"
-                  : `${gewaehlt.length} Veranstaltungen hier`}
+                  : `${gewaehlt.length} Veranstaltungen`}
               </p>
+              {zoomen && gewaehlt.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    zoomen();
+                    setAuswahl([]);
+                  }}
+                  className="flex min-h-12 shrink-0 items-center gap-1.5 rounded-full bg-see-zart px-3 text-[0.9rem] font-semibold text-see"
+                >
+                  <ZoomIn className="h-5 w-5" /> Auf Karte zeigen
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setAuswahl([])}
@@ -459,7 +513,7 @@ export default function KartenSeite() {
             </div>
             <ul className="flex flex-col gap-2">
               {gewaehlt.map((e, i) => (
-                <EventKarte key={e.id} event={e} index={i} ansicht="liste" />
+                <EventKarte key={e.id} event={e} index={i} ansicht="liste" mitBild />
               ))}
             </ul>
           </div>

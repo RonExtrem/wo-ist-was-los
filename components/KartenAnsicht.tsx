@@ -78,7 +78,8 @@ export function KartenAnsicht({
   events: EventKurz[];
   mitte: { lat: number; lng: number; name: string };
   umkreisKm: number | null;
-  onAuswahl: (ids: string[]) => void;
+  /** zoomen: bei einer Gruppe – zeigt genau diese Punkte auf der Karte */
+  onAuswahl: (ids: string[], zoomen?: () => void) => void;
   satellit?: boolean;
   bevorzugt?: string[];
   /** Gesetzt = „Punkt wählen“-Modus: der nächste Tipp auf die Karte liefert die Stelle */
@@ -242,24 +243,33 @@ export function KartenAnsicht({
             },
           });
 
-          // Tipp auf eine Gruppe: hineinzoomen – oder, wenn alle am selben Ort sind, die Liste zeigen
           // „Punkt wählen“: irgendwo auf die Karte tippen
           m.on("click", (ev) => {
             if (tippRef.current) tippRef.current(ev.lngLat.lat, ev.lngLat.lng);
           });
+          // Tipp auf eine Zahl: sofort die Liste dieser Veranstaltungen zeigen (statt Zoom-Stufe um Zoom-Stufe);
+          // „Auf der Karte zeigen“ zoomt dann genau auf diese Punkte
           m.on("click", "gruppen", async (ev: MapLayerMouseEvent) => {
             const f = ev.features?.[0];
             if (!f || !m || tippRef.current) return;
             const quelle = m.getSource("events") as GeoJSONSource;
-            const gruppenId = f.properties.cluster_id as number;
-            const zoom = await quelle.getClusterExpansionZoom(gruppenId);
-            const ziel = (f.geometry as GeoJSON.Point).coordinates as [number, number];
-            if (zoom <= 14 && zoom > m.getZoom() + 0.3) {
-              m.easeTo({ center: ziel, zoom });
-            } else {
-              const blaetter = await quelle.getClusterLeaves(gruppenId, 100, 0);
-              auswahlRef.current(blaetter.map((b) => String(b.properties?.id)));
-            }
+            const blaetter = await quelle.getClusterLeaves(f.properties.cluster_id as number, 1000, 0);
+            const punkte = blaetter.map((b) => (b.geometry as GeoJSON.Point).coordinates as [number, number]);
+            const zoomen = () => {
+              const lng = punkte.map((p) => p[0]);
+              const lat = punkte.map((p) => p[1]);
+              m?.fitBounds(
+                [
+                  [Math.min(...lng), Math.min(...lat)],
+                  [Math.max(...lng), Math.max(...lat)],
+                ],
+                { padding: { top: 190, bottom: 60, left: 50, right: 70 }, maxZoom: 15, duration: 700 }
+              );
+            };
+            auswahlRef.current(
+              blaetter.map((b) => String(b.properties?.id)),
+              zoomen
+            );
           });
           m.on("click", "punkte", (ev: MapLayerMouseEvent) => {
             const f = ev.features?.[0];
