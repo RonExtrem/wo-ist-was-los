@@ -31,6 +31,13 @@ export function LeisteUnten() {
               <Link
                 href={href}
                 aria-current={an ? "page" : undefined}
+                onClick={(ev) => {
+                  // Nochmal auf den aktiven Bereich tippen → wieder ganz nach oben
+                  if (an && pfad === href) {
+                    ev.preventDefault();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
                 className={`relative flex min-h-[4.25rem] flex-col items-center justify-center gap-1 text-[0.95rem] font-semibold transition-colors ${
                   an ? "text-see" : "text-gedaempft"
                 }`}

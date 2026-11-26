@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Heart, LoaderCircle } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
-import { EventKarte } from "@/components/EventKarte";
+import { AnsichtWahl, EventListe } from "@/components/EventListe";
 import type { EventKurz } from "@/lib/event-typ";
 
 export default function MeineEvents() {
@@ -48,19 +48,14 @@ export default function MeineEvents() {
         </div>
       ) : (
         <>
-          <ul className="mt-6 flex flex-col gap-3">
-            {kommend.map((e, i) => (
-              <EventKarte key={e.id} event={e} index={i} />
-            ))}
-          </ul>
+          <AnsichtWahl className="mt-6 mb-3 w-full" />
+          <EventListe events={kommend} />
           {vorbei.length > 0 && (
             <section className="mt-10 opacity-60">
               <h2 className="font-titel text-xl">Schon vorbei</h2>
-              <ul className="mt-3 flex flex-col gap-3">
-                {vorbei.map((e, i) => (
-                  <EventKarte key={e.id} event={e} index={i} />
-                ))}
-              </ul>
+              <div className="mt-3">
+                <EventListe events={vorbei} />
+              </div>
             </section>
           )}
         </>

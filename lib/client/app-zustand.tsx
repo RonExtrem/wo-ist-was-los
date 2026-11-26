@@ -12,7 +12,11 @@ export interface Einstellungen {
   interessen: string[];
   schriftgroesse: "normal" | "gross" | "sehr_gross";
   theme: "auto" | "hell" | "dunkel";
+  /** Wie Veranstaltungen angezeigt werden: große Karten, Kacheln (2 nebeneinander) oder kompakte Liste */
+  ansicht: Ansicht;
 }
+
+export type Ansicht = "gross" | "kacheln" | "liste";
 
 export interface Startpunkt {
   art: "daheim" | "hier" | "anders";
@@ -29,6 +33,7 @@ const STANDARD: Einstellungen = {
   interessen: [...STANDARD_INTERESSEN],
   schriftgroesse: "gross",
   theme: "auto",
+  ansicht: "gross",
 };
 
 const SCHLUESSEL = { token: "wiwl-token", einst: "wiwl-einstellungen", start: "wiwl-startpunkt", fav: "wiwl-favoriten" };

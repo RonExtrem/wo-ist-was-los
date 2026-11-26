@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LoaderCircle, Search, SlidersHorizontal, X, RotateCcw } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
 import { useEvents } from "@/lib/client/use-events";
-import { EventKarte } from "@/components/EventKarte";
+import { AnsichtWahl, EventListe } from "@/components/EventListe";
 import { StartpunktWahl } from "@/components/StartpunktWahl";
 import { KATEGORIE_ICON } from "@/components/KategorieBild";
 import { KATEGORIEN } from "@/lib/kategorien";
@@ -224,9 +224,12 @@ export function SuchSeite() {
         )}
         {fehler && <p className="rounded-3xl bg-abendsonne-zart p-5 text-abendsonne">{fehler}</p>}
         {events && !fehler && (
-          <p className="mb-2 text-[0.95rem] text-gedaempft">
-            {laedt ? "Wird aktualisiert …" : `${events.length} ${events.length === 1 ? "Veranstaltung" : "Veranstaltungen"} gefunden`}
-          </p>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[0.95rem] text-gedaempft">
+              {laedt ? "Wird aktualisiert …" : `${events.length} ${events.length === 1 ? "Veranstaltung" : "Veranstaltungen"} gefunden`}
+            </p>
+            <AnsichtWahl className="w-full" />
+          </div>
         )}
         {events?.length === 0 && !laedt && (
           <div className="rounded-3xl bg-flaeche-2 p-6 text-center">
@@ -237,11 +240,9 @@ export function SuchSeite() {
         {gruppen.map((g) => (
           <section key={g.titel} className="mt-6">
             <h2 className="sticky top-0 z-10 -mx-5 bg-background/95 px-5 py-2 font-titel text-xl backdrop-blur">{g.titel}</h2>
-            <ul className="mt-2 flex flex-col gap-3">
-              {g.events.map((e, i) => (
-                <EventKarte key={e.id} event={e} index={i} zeigeTag={g.titel === "Läuft gerade"} />
-              ))}
-            </ul>
+            <div className="mt-2">
+              <EventListe events={g.events} zeigeTag={g.titel === "Läuft gerade"} />
+            </div>
           </section>
         ))}
       </div>

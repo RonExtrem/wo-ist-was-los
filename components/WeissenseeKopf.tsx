@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { motion } from "motion/react";
 import { Settings } from "lucide-react";
-import { begruessung, heuteText } from "@/lib/datum";
+import { begruessung, heuteText, wienStunde } from "@/lib/datum";
 
 type Tageszeit = "morgen" | "tag" | "abend" | "nacht";
 
@@ -17,7 +17,7 @@ const HIMMEL: Record<Tageszeit, { oben: string; unten: string; sonne: string; se
 };
 
 function tageszeit(): Tageszeit {
-  const h = Number(new Intl.DateTimeFormat("de-AT", { timeZone: "Europe/Vienna", hour: "numeric", hour12: false }).format(new Date()));
+  const h = wienStunde();
   if (h >= 6 && h < 10) return "morgen";
   if (h >= 10 && h < 17) return "tag";
   if (h >= 17 && h < 21) return "abend";

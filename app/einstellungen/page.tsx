@@ -4,6 +4,7 @@ import { useState } from "react";
 import { House, Check, Sun, Moon, SunMoon } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
 import { OrtSuche } from "@/components/StartpunktWahl";
+import { AnsichtWahl } from "@/components/EventListe";
 import { KATEGORIE_ICON } from "@/components/KategorieBild";
 import { KATEGORIEN } from "@/lib/kategorien";
 import { ZurueckKnopf } from "../event/[id]/DetailAktionen";
@@ -117,6 +118,10 @@ export default function Einstellungen() {
             </button>
           ))}
         </div>
+      </Karte>
+
+      <Karte titel="Ansicht der Veranstaltungen" text="Groß mit Bild, Kacheln (zwei nebeneinander) oder eine kompakte Liste.">
+        <AnsichtWahl />
       </Karte>
 
       <Karte titel="Hell oder dunkel?">

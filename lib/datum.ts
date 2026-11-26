@@ -97,8 +97,17 @@ export function zeitfenster(art: "heute-morgen" | "wochenende" | "woche" | "mona
   }
 }
 
+const stundeFmt = fmt({ hour: "numeric", hourCycle: "h23" });
+
+/** Aktuelle Stunde in Wien (0–23). Achtung: format() liefert „08 Uhr“, darum formatToParts. */
+export function wienStunde(jetzt = new Date()): number {
+  const teil = stundeFmt.formatToParts(jetzt).find((t) => t.type === "hour");
+  return Number(teil?.value ?? 12);
+}
+
 export function begruessung(jetzt = new Date()): string {
-  const h = Number(fmt({ hour: "numeric", hour12: false }).format(jetzt));
+  const h = wienStunde(jetzt);
+  if (h < 4) return "Guten Abend";
   if (h < 11) return "Guten Morgen";
   if (h < 18) return "Servus";
   return "Guten Abend";

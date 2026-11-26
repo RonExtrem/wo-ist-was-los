@@ -7,7 +7,7 @@ import { useApp } from "@/lib/client/app-zustand";
 import { useEvents } from "@/lib/client/use-events";
 import { WeissenseeKopf } from "@/components/WeissenseeKopf";
 import { StartpunktWahl } from "@/components/StartpunktWahl";
-import { EventKarte } from "@/components/EventKarte";
+import { AnsichtWahl, EventListe, PRO_ABSCHNITT } from "@/components/EventListe";
 import { zeitfenster } from "@/lib/datum";
 import { LAENDER, type EventKurz } from "@/lib/event-typ";
 
@@ -24,6 +24,7 @@ function Abschnitt({
   alleLink: string;
   leerText: string;
 }) {
+  const { einstellungen } = useApp();
   return (
     <section className="mt-9">
       <div className="mb-3 flex items-end justify-between gap-3">
@@ -38,11 +39,7 @@ function Abschnitt({
         )}
       </div>
       {events.length ? (
-        <ul className="flex flex-col gap-3">
-          {events.slice(0, 3).map((e, i) => (
-            <EventKarte key={e.id} event={e} index={i} />
-          ))}
-        </ul>
+        <EventListe events={events.slice(0, PRO_ABSCHNITT[einstellungen.ansicht])} />
       ) : (
         <p className="rounded-3xl bg-flaeche-2 px-5 py-6 text-center text-gedaempft">{leerText}</p>
       )}
@@ -106,6 +103,7 @@ export default function Startseite() {
               ))}
             </div>
           )}
+          <AnsichtWahl className="mt-3 w-full" />
         </div>
 
         {(laedt && !events) || !bereit ? (

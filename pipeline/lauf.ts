@@ -36,6 +36,17 @@ async function main() {
   log(`Event-Sammler startet (${quellen.map((q) => q.id).join(", ")})${trocken ? " – TROCKENLAUF, nichts wird gespeichert" : ""}`);
 
   const pool = db();
+  // Ersatz-Termin: Wenn heute Nacht schon fertig gesammelt wurde, nichts doppelt tun
+  if (args.includes("--nur-falls-noetig") && !nurQuelle) {
+    const { rows } = await pool.query(
+      "SELECT 1 FROM sammler_laeufe WHERE beendet IS NOT NULL AND gestartet > now() - interval '18 hours' LIMIT 1",
+    );
+    if (rows.length) {
+      log("Heute wurde schon gesammelt – Ersatz-Lauf nicht nötig.");
+      await dbSchliessen();
+      return;
+    }
+  }
   let laufId: number | null = null;
   if (!trocken) {
     const { rows } = await pool.query("INSERT INTO sammler_laeufe (gestartet) VALUES ($1) RETURNING id", [laufStart]);
