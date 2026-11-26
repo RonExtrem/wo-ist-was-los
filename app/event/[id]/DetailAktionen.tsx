@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "motion/react";
 import { ArrowLeft, CalendarPlus, ExternalLink, Route, Share2, Check } from "lucide-react";
 import type { EventDetail } from "@/lib/event-typ";
 import { useApp } from "@/lib/client/app-zustand";
@@ -55,7 +56,7 @@ function kalenderLink(e: EventDetail): string {
 
 export function DetailAktionen({ event: e }: { event: EventDetail }) {
   const [geteilt, setGeteilt] = useState(false);
-  const { favoriten } = useApp();
+  const { favoriten, merken } = useApp();
   const gemerkt = favoriten.has(e.id);
   const original = e.links[0];
   const quelleName = original?.quelle ?? (original ? new URL(original.url).hostname.replace(/^www\./, "") : "");
@@ -95,13 +96,24 @@ export function DetailAktionen({ event: e }: { event: EventDetail }) {
         </a>
       )}
 
-      <div className="flex items-center gap-3 rounded-2xl bg-flaeche p-3 ring-1 ring-linie">
-        <HerzKnopf eventId={e.id} titel={e.titel} gross />
-        <div>
-          <p className="text-lg font-semibold">{gemerkt ? "Gemerkt" : "Merken"}</p>
-          <p className="text-[0.9rem] text-gedaempft">{gemerkt ? "Steht unter „Meine“" : "Erscheint dann unter „Meine“"}</p>
-        </div>
-      </div>
+      {/* Die ganze Fläche ist der Knopf – nicht nur das Herz */}
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.98 }}
+        onClick={() => merken(e.id)}
+        aria-pressed={gemerkt}
+        className={`flex min-h-20 w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition-colors ${
+          gemerkt ? "bg-abendsonne-zart/60 ring-abendsonne/40" : "bg-flaeche ring-linie hover:bg-see-zart"
+        }`}
+      >
+        <HerzKnopf eventId={e.id} titel={e.titel} gross nurSymbol />
+        <span>
+          <span className="block text-lg font-semibold">{gemerkt ? "Gemerkt" : "Merken"}</span>
+          <span className="block text-[0.9rem] text-gedaempft">
+            {gemerkt ? "Steht unter „Meine“ – nochmal tippen zum Entfernen" : "Erscheint dann unter „Meine“, mit Erinnerung"}
+          </span>
+        </span>
+      </motion.button>
 
       <div className="flex gap-3">
         <a href={kalenderLink(e)} target="_blank" rel="noopener noreferrer" className={zweit}>

@@ -6,6 +6,7 @@ import { AppZustandProvider } from "@/lib/client/app-zustand";
 import { LeisteUnten } from "@/components/LeisteUnten";
 import { NachObenKnopf } from "@/components/NachObenKnopf";
 import { PushFrage } from "@/components/PushFrage";
+import { HinweisLeiste } from "@/components/HinweisLeiste";
 import "./globals.css";
 
 // Atkinson Hyperlegible: entwickelt für bessere Lesbarkeit bei Sehschwäche
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <LeisteUnten />
             <NachObenKnopf />
             <PushFrage />
+            <HinweisLeiste />
           </Suspense>
         </AppZustandProvider>
         <ServiceWorkerRegister />

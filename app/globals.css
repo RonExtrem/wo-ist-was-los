@@ -120,3 +120,15 @@ body {
   width: 44px !important;
   height: 44px !important;
 }
+
+/* Knöpfe und Links: beim Antippen keinen Text markieren (fühlt sich am Handy wie eine echte App an) */
+button,
+[role="button"],
+[role="switch"],
+a {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+

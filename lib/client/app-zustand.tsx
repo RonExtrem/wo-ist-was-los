@@ -76,6 +76,8 @@ interface AppZustand {
   /** Nach dem ersten Herz einmal fragen, ob erinnert werden soll */
   pushFrage: boolean;
   schliessePushFrage: () => void;
+  /** Kurze Bestätigung unten am Bildschirm (z. B. nach dem Merken) */
+  hinweis: { id: number; text: string } | null;
 }
 
 const Ctx = createContext<AppZustand | null>(null);
@@ -85,7 +87,19 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
   const [einstellungen, setEinst] = useState<Einstellungen>(STANDARD);
   const [startpunkt, setStart] = useState<Startpunkt>({ art: "daheim", name: STANDARD.wohnortName, lat: STANDARD.lat, lng: STANDARD.lng });
   const [favoriten, setFav] = useState<Set<string>>(new Set());
+  const favoritenRef = useRef(favoriten);
+  useEffect(() => {
+    favoritenRef.current = favoriten;
+  }, [favoriten]);
   const [pushFrage, setPushFrage] = useState(false);
+  const [hinweis, setHinweis] = useState<{ id: number; text: string } | null>(null);
+  const hinweisTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const zeigeHinweis = useCallback((text: string) => {
+    if (hinweisTimer.current) clearTimeout(hinweisTimer.current);
+    setHinweis({ id: Date.now(), text });
+    hinweisTimer.current = setTimeout(() => setHinweis(null), 4000);
+  }, []);
+  const erinnernRef = useRef(true);
   const tokenRef = useRef<string | null>(null);
   const tokenPromise = useRef<Promise<string | null> | null>(null);
 
@@ -145,6 +159,10 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, [api]);
 
+  useEffect(() => {
+    erinnernRef.current = einstellungen.erinnern;
+  }, [einstellungen.erinnern]);
+
   // Schriftgröße und Hell/Dunkel auf die ganze Seite anwenden
   useEffect(() => {
     const html = document.documentElement;
@@ -179,14 +197,24 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
 
   const merken = useCallback(
     (eventId: string) => {
-      setFav((alt) => {
-        if (!alt.has(eventId) && pushMoeglich() && Notification.permission === "default") {
-          try {
-            if (!localStorage.getItem("wiwl-push-gefragt")) setTimeout(() => setPushFrage(true), 600);
-          } catch {
-            /* egal */
-          }
+      const warSchon = favoritenRef.current.has(eventId);
+      // Rückmeldung außerhalb der Zustandsänderung (nur einmal, auch im Entwicklungsmodus)
+      if (warSchon) {
+        zeigeHinweis("Nicht mehr gemerkt");
+      } else {
+        const erlaubnis = pushMoeglich() ? Notification.permission : "denied";
+        let schonGefragt = true;
+        try {
+          schonGefragt = !!localStorage.getItem("wiwl-push-gefragt");
+        } catch {
+          /* egal */
         }
+        if (erlaubnis === "default" && !schonGefragt) setTimeout(() => setPushFrage(true), 500);
+        else if (erlaubnis === "granted" && erinnernRef.current)
+          zeigeHinweis("Gemerkt ♥ Erinnerung kommt am Vortag um ca. 18 Uhr und am Tag um ca. 8 Uhr.");
+        else zeigeHinweis("Gemerkt ♥ Du findest es unter „Meine“.");
+      }
+      setFav((alt) => {
         const neu = new Set(alt);
         const istDrin = neu.has(eventId);
         if (istDrin) neu.delete(eventId);
@@ -199,7 +227,7 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
         return neu;
       });
     },
-    [api]
+    [api, zeigeHinweis]
   );
 
   const schliessePushFrage = useCallback(() => {
@@ -208,8 +236,8 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const wert = useMemo(
-    () => ({ bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api, pushFrage, schliessePushFrage }),
-    [bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api, pushFrage, schliessePushFrage]
+    () => ({ bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api, pushFrage, schliessePushFrage, hinweis }),
+    [bereit, einstellungen, setzeEinstellungen, startpunkt, setzeStartpunkt, favoriten, merken, api, pushFrage, schliessePushFrage, hinweis]
   );
   return <Ctx.Provider value={wert}>{children}</Ctx.Provider>;
 }
