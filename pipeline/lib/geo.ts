@@ -54,8 +54,9 @@ export async function ortSuchen(anfrage: string): Promise<Ort | null> {
           land: a.country_code ? a.country_code.toUpperCase() : null,
         };
       }
-    } else if (res.status === 429) {
-      return null; // nicht merken, nächstes Mal neu versuchen
+    } else {
+      // 403/429/5xx: Dienst gerade nicht erreichbar – nicht als „Ort unbekannt“ merken, nächstes Mal neu versuchen
+      return null;
     }
   } catch {
     return null;

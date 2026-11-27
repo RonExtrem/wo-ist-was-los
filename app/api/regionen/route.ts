@@ -6,7 +6,7 @@ function liste(v: string | null): string[] | undefined {
   return l?.length ? l : undefined;
 }
 
-// GET /api/regionen?von=ISO&bis=ISO&kat=a,b&gratis=1&q=text&neu=7 → { zahlen: { AT: 123, Kärnten: 45, … } }
+// GET /api/regionen?von=ISO&bis=ISO&kat=a,b&gratis=1&q=text&neu=7[&lat=..&lng=..&radius=km] → { zahlen: { AT: 123, Kärnten: 45, … } }
 export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
   const von = p.get("von");
@@ -15,8 +15,17 @@ export async function GET(req: NextRequest) {
     return Response.json({ fehler: "Datum ungültig" }, { status: 400 });
   }
   const neu = Number(p.get("neu"));
+  // Optional: Umkreis um einen Punkt (dann zählen die Länder nur darin)
+  const lat = Number(p.get("lat"));
+  const lng = Number(p.get("lng"));
+  const radius = Number(p.get("radius"));
+  const umkreis =
+    p.get("lat") && p.get("lng") && p.get("radius") && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && radius > 0
+      ? { lat, lng, radiusKm: Math.min(radius, 2000) }
+      : {};
   try {
     const zahlen = await zaehleRegionen({
+      ...umkreis,
       von,
       bis,
       kategorien: liste(p.get("kat")),

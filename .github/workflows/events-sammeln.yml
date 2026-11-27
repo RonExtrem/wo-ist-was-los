@@ -4,8 +4,8 @@ on:
   schedule:
     # Zeiten in UTC. GitHub lässt geplante Läufe manchmal ausfallen,
     # darum ein Ersatz-Termin, der sich selbst überspringt, wenn schon gesammelt wurde.
-    - cron: "17 1 * * *" # ca. 2:17 Uhr (Winterzeit)
-    - cron: "43 3 * * *" # Ersatz: ca. 4:43 Uhr
+    - cron: "23 1 * * *" # ca. 2:23 Uhr (Winterzeit)
+    - cron: "47 3 * * *" # Ersatz: ca. 4:47 Uhr
   workflow_dispatch: {} # per Knopfdruck auf GitHub startbar
 
 concurrency:

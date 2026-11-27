@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, LoaderCircle, MapPin, RotateCcw, Shapes, Sparkles, X } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
 import { useEvents } from "@/lib/client/use-events";
+import { useStunde } from "@/lib/client/use-stunde";
+import { aufStunde, useZahlen } from "@/lib/client/use-zahlen";
 import { AnsichtWahl, EventListe } from "@/components/EventListe";
 import { StartpunktWahl } from "@/components/StartpunktWahl";
 import { SuchFeld } from "@/components/SuchFeld";
@@ -23,7 +25,9 @@ const ZEITEN = [
   { id: "jahr", text: "1 Jahr" },
 ] as const;
 type ZeitId = (typeof ZEITEN)[number]["id"];
-const UMKREISE = ["10", "25", "50", "100", "150", "alle"] as const;
+const UMKREISE = ["10", "25", "50", "75", "100", "150", "alle"] as const;
+/** Höchstens so viele Veranstaltungen in der Liste (darüber: Hinweis zum Eingrenzen) */
+const MAX_LISTE = 500;
 
 /** Kleine Zahl im Chip (wie viele Veranstaltungen) – 0 bleibt sichtbar, aber blass */
 function Zahl({ n, an }: { n: number | undefined; an: boolean }) {
@@ -107,8 +111,9 @@ export function SuchSeite() {
     return (liste.includes(wert) ? liste.filter((x) => x !== wert) : [...liste, wert]).join(",");
   };
 
+  const stunde = useStunde(); // rechnet den Zeitraum neu, wenn die App über Nacht offen blieb
   const abfrage = useMemo(() => {
-    if (!bereit) return null;
+    if (!bereit || !stunde) return null;
     const { von, bis } = zeitfenster(zeit);
     return {
       lat: startpunkt.lat,
@@ -122,37 +127,26 @@ export function SuchSeite() {
       gratis,
       q,
       neu,
+      max: MAX_LISTE,
     };
-  }, [bereit, startpunkt.lat, startpunkt.lng, zeit, radius, kat, land, region, gratis, q, neu]);
+  }, [bereit, stunde, startpunkt.lat, startpunkt.lng, zeit, radius, kat, land, region, gratis, q, neu]);
   const { events, fehler, laedt } = useEvents(abfrage);
 
-  // Zahlen pro Land und Bundesland (nur wenn „Land & Bundesland“ offen ist)
-  const zahlenSchluessel =
+  // Zahlen pro Land (im Umkreis – so viele zeigt die Liste nach dem Antippen) und Bundesland (ganzes Bundesland),
+  // nur wenn „Land & Bundesland" offen ist. Auf die Stunde gerundet, sonst springen die Knöpfe bei jedem Antippen.
+  const z = useZahlen(
     offen === "wo" && abfrage
-      ? new URLSearchParams({
-          // auf die Stunde gerundet – sonst ändert sich der Schlüssel bei jedem Antippen, die Zahlen verschwinden kurz und die Knöpfe springen
-          von: abfrage.von.toISOString().slice(0, 13) + ":00:00Z",
-          bis: abfrage.bis.toISOString().slice(0, 13) + ":00:00Z",
+      ? {
+          von: aufStunde(abfrage.von),
+          bis: aufStunde(abfrage.bis),
           kat: kat.join(","),
           gratis: gratis ? "1" : "",
           q,
           neu: neu ? String(neu) : "",
-        }).toString()
-      : null;
-  const [zahlen, setZahlen] = useState<{ schluessel: string; werte: Record<string, number> } | null>(null);
-  useEffect(() => {
-    if (!zahlenSchluessel) return;
-    const ctrl = new AbortController();
-    fetch(`/api/regionen?${zahlenSchluessel}`, { signal: ctrl.signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { zahlen?: Record<string, number> } | null) => {
-        if (d?.zahlen) setZahlen({ schluessel: zahlenSchluessel, werte: d.zahlen });
-      })
-      .catch(() => {});
-    return () => ctrl.abort();
-  }, [zahlenSchluessel]);
-  // Alte Zahlen stehen lassen, bis die neuen da sind (kein Springen)
-  const z = zahlen?.werte;
+          ...(abfrage.radius === "alle" ? {} : { lat: String(abfrage.lat), lng: String(abfrage.lng), radius: String(abfrage.radius) }),
+        }
+      : null
+  );
 
   const landUmschalten = (id: string) => {
     const neuLand = umschalten("land", id);
@@ -196,6 +190,8 @@ export function SuchSeite() {
         lat={startpunkt.lat}
         lng={startpunkt.lng}
         radius={radius === "alle" ? "alle" : Number(radius) || 50}
+        // Dieselben Filter wie die Liste, damit „N Treffer" zur Liste passt
+        filter={{ kat, land, region, gratis, neu }}
       />
 
       {neu > 0 && (
@@ -325,7 +321,11 @@ export function SuchSeite() {
         {events && !fehler && (
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-[0.95rem] text-gedaempft">
-              {laedt ? "Wird aktualisiert …" : `${events.length} ${events.length === 1 ? "Veranstaltung" : "Veranstaltungen"} gefunden`}
+              {laedt
+                ? "Wird aktualisiert …"
+                : events.length >= MAX_LISTE
+                  ? `Mehr als ${MAX_LISTE} Veranstaltungen – hier die nächsten ${MAX_LISTE}. Mit Zeitraum, Umkreis oder Themen grenzt du ein.`
+                  : `${events.length} ${events.length === 1 ? "Veranstaltung" : "Veranstaltungen"} gefunden`}
             </p>
             <AnsichtWahl className="w-full" />
           </div>

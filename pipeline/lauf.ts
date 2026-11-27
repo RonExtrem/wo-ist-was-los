@@ -111,7 +111,18 @@ async function main() {
         const st = leereStatistik();
         await speichereEvents(events, st, log);
         bericht.statistik = st;
-        bericht.verschwunden = await verschwundeneMarkieren(q.id, q.horizontTage, laufStart);
+        // Nur nach einem gesunden Abruf als „verschwunden“ markieren. Liefert die Quelle nichts oder viel weniger
+        // als sonst (gesperrt, Seite umgebaut, Listenseiten fehlgeschlagen), sonst stünde alles als „abgesagt“ da.
+        const { rows: vorher } = await pool.query("SELECT durchschnitt FROM quellen WHERE id = $1", [q.id]);
+        const schnittVorher = vorher[0]?.durchschnitt == null ? null : Number(vorher[0].durchschnitt);
+        const listenFehler = erg.hinweise.some((h) => h.startsWith("Liste "));
+        const zuWenig = events.length === 0 || (schnittVorher != null && schnittVorher >= 5 && events.length < schnittVorher * 0.4);
+        if (listenFehler || zuWenig) {
+          bericht.verschwunden = 0;
+          log("  Abruf unvollständig – diesmal nichts als verschwunden markiert");
+        } else {
+          bericht.verschwunden = await verschwundeneMarkieren(q.id, q.horizontTage, laufStart);
+        }
         log(`  gespeichert: ${JSON.stringify(st)}, verschwunden: ${bericht.verschwunden}`);
       }
     } catch (err) {

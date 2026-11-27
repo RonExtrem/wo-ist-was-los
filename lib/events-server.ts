@@ -29,10 +29,22 @@ function zuKurz(r: Zeile): EventKurz {
 
 const MAX_ERGEBNISSE = 400;
 
+/**
+ * Bis wann gilt ein Event als „noch nicht vorbei"? Ohne Ende: ganztägige bis Tagesende, sonst 2 Stunden nach Beginn
+ * (vorher verschwand z. B. ein Adventmarkt ohne Endzeit schon um Mitternacht seines eigenen Tages).
+ */
+export const NOCH_NICHT_VORBEI_SQL = `coalesce(e.ende, e.beginn + CASE WHEN e.ganztaegig THEN interval '1 day' ELSE interval '2 hours' END)`;
+
+/** Suchtext für ILIKE: %, _ und \ sind dort Platzhalter und werden darum maskiert. */
+function suchMuster(text: string | undefined): string | null {
+  const t = text?.trim();
+  return t ? `%${t.replace(/[\\%_]/g, (z) => "\\" + z)}%` : null;
+}
+
 /** Events um einen Punkt, nach Zeitraum und Filtern, sortiert nach Beginn. */
 export async function ladeEvents(f: EventFilter): Promise<EventKurz[]> {
   const db = sql();
-  const suche = f.suche?.trim() ? `%${f.suche.trim()}%` : null;
+  const suche = suchMuster(f.suche);
   const reg = regionenAufloesen(f.regionen ?? []);
   const rows = await db.query(
     `SELECT e.id, e.titel, e.kurzbeschreibung, e.beginn, e.ende, e.ganztaegig, e.ort_name, e.land, e.region,
@@ -42,7 +54,7 @@ export async function ladeEvents(f: EventFilter): Promise<EventKurz[]> {
        FROM events e
       WHERE e.status <> 'verschwunden'
         AND e.geo IS NOT NULL
-        AND coalesce(e.ende, e.beginn) >= $4::timestamptz
+        AND ${NOCH_NICHT_VORBEI_SQL} >= $4::timestamptz
         AND e.beginn <= $5::timestamptz
         AND ($3::float8 IS NULL OR ST_DWithin(e.geo, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography, $3::float8 * 1000))
         AND ($6::text[] IS NULL OR e.kategorien && $6::text[])
@@ -71,15 +83,23 @@ export async function ladeEvents(f: EventFilter): Promise<EventKurz[]> {
   return (rows as Zeile[]).map(zuKurz);
 }
 
-/** Wie viele Events pro Bundesland/Region (ohne Umkreis – das Bundesland ersetzt den Umkreis). */
-export async function zaehleRegionen(f: Omit<EventFilter, "lat" | "lng" | "radiusKm" | "laender" | "regionen" | "max">): Promise<Record<string, number>> {
-  const suche = f.suche?.trim() ? `%${f.suche.trim()}%` : null;
+/**
+ * Wie viele Events pro Land und Bundesland/Region.
+ * Länder zählen im Umkreis (falls angegeben) – so viele zeigt die Liste nach dem Antippen.
+ * Bundesländer zählen ohne Umkreis, weil ein gewähltes Bundesland den Umkreis ersetzt.
+ */
+export async function zaehleRegionen(
+  f: Omit<EventFilter, "lat" | "lng" | "radiusKm" | "laender" | "regionen" | "max"> & { lat?: number; lng?: number; radiusKm?: number | null }
+): Promise<Record<string, number>> {
+  const mitUmkreis = f.lat != null && f.lng != null && f.radiusKm != null;
   const rows = (await sql().query(
-    `SELECT e.land, e.region, count(*)::int AS n
+    `SELECT e.land, e.region, count(*)::int AS n,
+            count(*) FILTER (WHERE $7::float8 IS NULL
+              OR ST_DWithin(e.geo, ST_SetSRID(ST_MakePoint($9, $8), 4326)::geography, $7::float8 * 1000))::int AS n_umkreis
        FROM events e
       WHERE e.status <> 'verschwunden'
         AND e.geo IS NOT NULL
-        AND coalesce(e.ende, e.beginn) >= $1::timestamptz
+        AND ${NOCH_NICHT_VORBEI_SQL} >= $1::timestamptz
         AND e.beginn <= $2::timestamptz
         AND ($3::text[] IS NULL OR e.kategorien && $3::text[])
         AND (NOT $4::boolean OR e.gratis = true)
@@ -91,13 +111,16 @@ export async function zaehleRegionen(f: Omit<EventFilter, "lat" | "lng" | "radiu
       f.bis,
       f.kategorien?.length ? f.kategorien : null,
       !!f.nurGratis,
-      suche,
+      suchMuster(f.suche),
       f.neuTage ? Math.min(Math.max(Math.round(f.neuTage), 1), 30) : null,
+      mitUmkreis ? f.radiusKm : null,
+      mitUmkreis ? f.lat : 0,
+      mitUmkreis ? f.lng : 0,
     ]
-  )) as { land: string; region: string | null; n: number }[];
+  )) as { land: string; region: string | null; n: number; n_umkreis: number }[];
   const zahlen: Record<string, number> = {};
   for (const r of rows) {
-    zahlen[r.land] = (zahlen[r.land] ?? 0) + r.n;
+    zahlen[r.land] = (zahlen[r.land] ?? 0) + r.n_umkreis;
     const id = regionId(r.land, r.region);
     if (id) zahlen[id] = (zahlen[id] ?? 0) + r.n;
   }

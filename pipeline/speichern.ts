@@ -2,7 +2,7 @@
 import type { RohEvent } from "./typen.ts";
 import { db } from "./lib/db.ts";
 import { ortSuchen, imSammelgebiet } from "./lib/geo.ts";
-import { fingerabdruck, gleichesEvent } from "./lib/doppelte.ts";
+import { fingerabdruck, gleichesEvent, kategorienVereinenSql, ortsWoerter } from "./lib/doppelte.ts";
 import { wienTag, wienTagesende } from "./lib/zeit.ts";
 
 export interface SpeicherStatistik {
@@ -110,7 +110,7 @@ export async function speichereEvents(
     //    sonst würden Folgetermine einer Serie (Fr/Sa/So) zu einem Termin verschmolzen.
     if (!eventId) {
       ({ rows } = await pool.query(
-        `SELECT e.id, e.titel, ST_Distance(e.geo, $2::geography) AS meter,
+        `SELECT e.id, e.titel, e.ort_name, ST_Distance(e.geo, $2::geography) AS meter,
                 (e.beginn AT TIME ZONE 'Europe/Vienna')::date = $4::date AS gleicher_tag,
                 abs(extract(epoch FROM e.beginn - $1::timestamptz)) <= 43200 AS nah,
                 EXISTS (SELECT 1 FROM event_links l WHERE l.event_id = e.id AND l.quelle_id = $3) AS gleiche_quelle
@@ -123,7 +123,9 @@ export async function speichereEvents(
         .filter((r) => (r.gleiche_quelle ? e.urlIstDetail !== true && r.gleicher_tag : r.gleicher_tag || r.nah))
         .map((r) => ({
           id: r.id as string,
-          wert: gleichesEvent(r.titel, e.titel, Number(r.meter), r.gleiche_quelle) + (r.gleicher_tag ? 0.01 : 0),
+          wert:
+            gleichesEvent(r.titel, e.titel, Number(r.meter), r.gleiche_quelle, ortsWoerter(r.ort_name, e.ortName)) +
+            (r.gleicher_tag ? 0.01 : 0),
         }))
         .filter((r) => r.wert > 0.01)
         .sort((a, b) => b.wert - a.wert)[0];
@@ -141,7 +143,7 @@ export async function speichereEvents(
              kurzbeschreibung = coalesce(kurzbeschreibung, $2),
              preis_text = coalesce(preis_text, $3),
              bild_url = coalesce(bild_url, $4),
-             kategorien = ARRAY(SELECT DISTINCT unnest(kategorien || $5::text[])),
+             kategorien = ${kategorienVereinenSql("kategorien", "$5::text[]")},
              status = CASE WHEN status = 'verschwunden' THEN 'aktiv' ELSE status END
            WHERE id = $1`,
           [eventId, e.beschreibung ?? null, e.preisText ?? null, e.bildUrl ?? null, e.kategorien]

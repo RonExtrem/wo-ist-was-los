@@ -1,7 +1,7 @@
 // Aufräumen nach dem Sammeln: übersehene Doppelte zusammenführen, alte Einträge löschen.
 // Lokal:  node --env-file=.env.local pipeline/aufraeumen.ts [--trocken]
 import { db, dbSchliessen } from "./lib/db.ts";
-import { gleichesEvent } from "./lib/doppelte.ts";
+import { gleichesEvent, kategorienVereinenSql, ortsWoerter } from "./lib/doppelte.ts";
 
 /** So lange bleiben vergangene Events (für „Meine Events“, ausgegraut) – danach werden sie gelöscht. */
 const AUFBEWAHREN_TAGE = 60;
@@ -13,7 +13,8 @@ const AUFBEWAHREN_TAGE = 60;
 export async function doppelteZusammenfuehren(trocken = false, log: (t: string) => void = console.log): Promise<number> {
   const pool = db();
   const { rows } = await pool.query(
-    `SELECT a.id ia, b.id ib, a.titel ta, b.titel tb, ST_Distance(a.geo, b.geo) meter, a.erstellt <= b.erstellt a_aelter
+    `SELECT a.id ia, b.id ib, a.titel ta, b.titel tb, a.ort_name oa, b.ort_name ob,
+            ST_Distance(a.geo, b.geo) meter, a.erstellt <= b.erstellt a_aelter
        FROM events a JOIN events b ON a.id < b.id
         AND (b.beginn AT TIME ZONE 'Europe/Vienna')::date = (a.beginn AT TIME ZONE 'Europe/Vienna')::date
         AND ST_DWithin(a.geo, b.geo, 8000)
@@ -26,7 +27,7 @@ export async function doppelteZusammenfuehren(trocken = false, log: (t: string) 
   let n = 0;
   for (const r of rows) {
     if (weg.has(r.ia) || weg.has(r.ib)) continue;
-    if (!gleichesEvent(r.ta, r.tb, Number(r.meter), false)) continue;
+    if (!gleichesEvent(r.ta, r.tb, Number(r.meter), false, ortsWoerter(r.oa, r.ob))) continue;
     const [bleibt, geht] = r.a_aelter ? [r.ia, r.ib] : [r.ib, r.ia];
     log(`  Doppelt: „${r.ta}“ = „${r.tb}“ (${Math.round(r.meter)} m)`);
     n++;
@@ -41,10 +42,14 @@ export async function doppelteZusammenfuehren(trocken = false, log: (t: string) 
         [bleibt, geht]
       );
       await c.query(
-        `INSERT INTO favoriten (geraet_id, event_id, erstellt) SELECT geraet_id, $1, erstellt FROM favoriten WHERE event_id = $2
+        // „erinnern“ mitnehmen – sonst bekäme jemand, der „nur merken“ gewählt hat, plötzlich Erinnerungen
+        `INSERT INTO favoriten (geraet_id, event_id, erstellt, erinnern)
+         SELECT geraet_id, $1, erstellt, erinnern FROM favoriten WHERE event_id = $2
          ON CONFLICT DO NOTHING`,
         [bleibt, geht]
       );
+      // Noch nicht gemeldete Änderungen (Absage, neuer Termin) nicht mit dem Doppelten löschen
+      await c.query("UPDATE event_aenderungen SET event_id = $1 WHERE event_id = $2 AND NOT gemeldet", [bleibt, geht]);
       await c.query(
         `INSERT INTO erinnerungen (geraet_id, event_id, zeitpunkt, art, gesendet_am)
          SELECT geraet_id, $1, zeitpunkt, art, gesendet_am FROM erinnerungen WHERE event_id = $2 ON CONFLICT DO NOTHING`,
@@ -56,7 +61,7 @@ export async function doppelteZusammenfuehren(trocken = false, log: (t: string) 
            preis_text = coalesce(k.preis_text, g.preis_text),
            bild_url = coalesce(k.bild_url, g.bild_url),
            ende = coalesce(k.ende, g.ende),
-           kategorien = ARRAY(SELECT DISTINCT unnest(k.kategorien || g.kategorien)),
+           kategorien = ${kategorienVereinenSql("k.kategorien", "g.kategorien")},
            zuletzt_gesehen = greatest(k.zuletzt_gesehen, g.zuletzt_gesehen)
          FROM events g WHERE k.id = $1 AND g.id = $2`,
         [bleibt, geht]

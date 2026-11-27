@@ -43,6 +43,7 @@ export function SuchFeld({
   lat,
   lng,
   radius,
+  filter,
 }: {
   /** Aktuell angewendeter Suchbegriff */
   wert: string;
@@ -51,15 +52,26 @@ export function SuchFeld({
   lat: number;
   lng: number;
   radius: number | "alle";
+  /** Aktive Filter der Liste – die Vorschläge zählen mit denselben, damit „N Treffer" zur Liste passt */
+  filter?: { kat: string[]; land: string[]; region: string[]; gratis: boolean; neu: number };
 }) {
   const [text, setText] = useState(wert);
   const [offen, setOffen] = useState(false);
-  const [vorschlaege, setVorschlaege] = useState<{ fuer: string; events: EventKurz[] } | null>(null);
+  const [vorschlaege, setVorschlaege] = useState<{ fuer: string; events: EventKurz[]; fehler?: boolean } | null>(null);
   const [laedt, setLaedt] = useState(false);
   const eingabe = useRef<HTMLInputElement>(null);
   const nachDemSchliessen = useRef<(() => void) | null>(null);
   const sauber = text.trim();
   const genug = sauber.length >= 2;
+  const filterText = filter
+    ? new URLSearchParams({
+        ...(filter.kat.length ? { kat: filter.kat.join(",") } : {}),
+        ...(filter.land.length ? { land: filter.land.join(",") } : {}),
+        ...(filter.region.length ? { region: filter.region.join(",") } : {}),
+        ...(filter.gratis ? { gratis: "1" } : {}),
+        ...(filter.neu ? { neu: String(filter.neu) } : {}),
+      }).toString()
+    : "";
 
   // Vorschläge laden (kurz warten, bis man fertig getippt hat; alte Anfragen abbrechen)
   useEffect(() => {
@@ -77,17 +89,20 @@ export function SuchFeld({
         q: sauber,
         max: String(MAX_LADEN),
       });
-      fetch(`/api/events?${p}`, { signal: abbruch.signal })
-        .then((r) => r.json())
+      fetch(`/api/events?${p}${filterText ? `&${filterText}` : ""}`, { signal: abbruch.signal })
+        .then((r) => {
+          if (!r.ok) throw new Error(String(r.status));
+          return r.json();
+        })
         .then((d: { events?: EventKurz[] }) => setVorschlaege({ fuer: sauber, events: d.events ?? [] }))
-        .catch(() => !abbruch.signal.aborted && setVorschlaege({ fuer: sauber, events: [] }))
+        .catch(() => !abbruch.signal.aborted && setVorschlaege({ fuer: sauber, events: [], fehler: true }))
         .finally(() => !abbruch.signal.aborted && setLaedt(false));
     }, 250);
     return () => {
       clearTimeout(t);
       abbruch.abort();
     };
-  }, [sauber, genug, lat, lng, radius]);
+  }, [sauber, genug, lat, lng, radius, filterText]);
 
   // Sortieren: Titel beginnt mit dem Begriff → ein Wort im Titel beginnt so → Titel enthält ihn → nur Ort/Beschreibung
   const liste = useMemo(() => {
@@ -117,20 +132,23 @@ export function SuchFeld({
       window.history.back(); // → popstate schließt
     } else {
       setOffen(false);
-      danach?.();
+      if (danach) danach();
+      else setText(wert);
     }
-  }, []);
+  }, [wert]);
   useEffect(() => {
     const zurueck = () => {
       if (window.location.hash === MARKE) return;
       setOffen(false);
       const danach = nachDemSchliessen.current;
       nachDemSchliessen.current = null;
-      danach?.();
+      if (danach) danach();
+      // Ohne „Als Liste": wieder den angewendeten Begriff zeigen – sonst stünde ein Wort im Feld, nach dem die Liste nicht filtert
+      else setText(wert);
     };
     window.addEventListener("popstate", zurueck);
     return () => window.removeEventListener("popstate", zurueck);
-  }, []);
+  }, [wert]);
 
   const anwenden = (t: string) => schliessen(() => suchen(t.trim()));
   const aktuell = vorschlaege?.fuer === sauber;
@@ -188,8 +206,10 @@ export function SuchFeld({
                 onClick={() => {
                   setText("");
                   setVorschlaege(null);
-                  if (wert) suchen("");
-                  eingabe.current?.focus();
+                  // Angewendeten Begriff löschen: erst den Such-Bildschirm über den Verlauf schließen,
+                  // sonst holt die Zurück-Taste die alte Suche wieder
+                  if (wert) schliessen(() => suchen(""));
+                  else eingabe.current?.focus();
                 }}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-flaeche-2"
               >
@@ -253,7 +273,10 @@ export function SuchFeld({
                 )}
               </div>
 
-              {anzahl === 0 && (
+              {anzahl === 0 && vorschlaege?.fehler && (
+                <p className="px-4 py-5 text-lg text-abendsonne">Die Suche hat gerade nicht geklappt. Bitte gleich nochmal probieren.</p>
+              )}
+              {anzahl === 0 && !vorschlaege?.fehler && (
                 <p className="px-4 py-5 text-lg text-gedaempft">
                   Nichts mit „{sauber}“ gefunden. Probier ein anderes Wort oder stell unter „Wie weit?“ einen größeren Umkreis ein.
                 </p>

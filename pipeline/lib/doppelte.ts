@@ -19,10 +19,22 @@ function woerter(text: string): Set<string> {
   return new Set(normalisiere(text).split(" ").filter((w) => w.length > 1 && !FUELLWOERTER.has(w)));
 }
 
-/** Ähnlichkeit zweier Titel von 0 bis 1. */
-export function titelAehnlichkeit(a: string, b: string): number {
-  const A = woerter(a);
-  const B = woerter(b);
+/** Wörter ohne die Ortsnamen – „Krampuslauf Velden“ und „Adventmarkt Velden“ teilen nur den Ort, sind aber verschieden. */
+function ohneOrt(w: Set<string>, ohne?: Set<string>): Set<string> {
+  if (!ohne?.size) return w;
+  const rest = new Set([...w].filter((x) => !ohne.has(x)));
+  return rest.size ? rest : w; // Titel besteht nur aus dem Ort → doch vergleichen
+}
+
+/** Wörter aus Ortsangaben (z. B. „Velden, Velden am Wörthersee“) zum Herausnehmen beim Vergleich. */
+export function ortsWoerter(...orte: (string | null | undefined)[]): Set<string> {
+  return new Set(orte.flatMap((o) => (o ? [...woerter(o)] : [])));
+}
+
+/** Ähnlichkeit zweier Titel von 0 bis 1 (Ortsnamen zählen nicht mit). */
+export function titelAehnlichkeit(a: string, b: string, ohne?: Set<string>): number {
+  const A = ohneOrt(woerter(a), ohne);
+  const B = ohneOrt(woerter(b), ohne);
   if (!A.size || !B.size) return 0;
   let gemeinsam = 0;
   for (const w of A) if (B.has(w)) gemeinsam++;
@@ -32,9 +44,11 @@ export function titelAehnlichkeit(a: string, b: string): number {
 }
 
 /** Buchstaben-Dreier-Ähnlichkeit ohne Leerzeichen – erkennt „Weltcup-Finale“ = „Weltcupfinale“. */
-export function zeichenAehnlichkeit(a: string, b: string): number {
+export function zeichenAehnlichkeit(a: string, b: string, ohne?: Set<string>): number {
   const dreier = (t: string) => {
-    const s = normalisiere(t).replace(/\b20\d\d\b/g, "").replace(/ /g, "");
+    const alle = normalisiere(t).replace(/\b20\d\d\b/g, "").split(" ").filter(Boolean);
+    const ohneOrte = ohne?.size ? alle.filter((w) => !ohne.has(w)) : alle;
+    const s = (ohneOrte.length ? ohneOrte : alle).join("");
     const m = new Map<string, number>();
     for (let i = 0; i < s.length - 2; i++) m.set(s.slice(i, i + 3), (m.get(s.slice(i, i + 3)) ?? 0) + 1);
     return { m, n: Math.max(s.length - 2, 0) };
@@ -53,16 +67,26 @@ export function zeichenAehnlichkeit(a: string, b: string): number {
  * (Quellen setzen den Punkt oft verschieden: Ortsmitte statt Festplatz).
  * Aus derselben Quelle zählt nur der Wort-Vergleich (sonst verschmelzen „… – Temple Brass“ und „… – Du Brass“).
  */
-export function gleichesEvent(a: string, b: string, meter: number, gleicheQuelle: boolean): number {
-  const worte = titelAehnlichkeit(a, b);
+export function gleichesEvent(a: string, b: string, meter: number, gleicheQuelle: boolean, orte?: Set<string>): number {
+  const worte = titelAehnlichkeit(a, b, orte);
   if (gleicheQuelle) return meter <= 2000 && worte >= 0.5 ? worte : 0;
-  const zeichen = zeichenAehnlichkeit(a, b);
+  const zeichen = zeichenAehnlichkeit(a, b, orte);
   const wert = Math.max(worte, zeichen);
   if (meter <= 2000 && (worte >= 0.5 || zeichen >= 0.65)) return wert;
   // Weiter weg nur bei aussagekräftigem Titel: „Kinderfasching“ gibt es in jedem Nachbarort
-  const kuerzer = Math.min(woerter(a).size, woerter(b).size);
+  const kuerzer = Math.min(ohneOrt(woerter(a), orte).size, ohneOrt(woerter(b), orte).size);
   if (meter <= 8000 && wert >= 0.8 && kuerzer >= 2) return wert;
   return 0;
+}
+
+/**
+ * SQL: Kategorien zweier Einträge vereinen – Reihenfolge bleibt (die erste ist die Hauptkategorie),
+ * „sonstiges“ fällt weg, sobald es eine echte gibt.
+ */
+export function kategorienVereinenSql(a: string, b: string): string {
+  return `(SELECT CASE WHEN bool_or(x.k <> 'sonstiges') THEN array_agg(x.k ORDER BY x.i) FILTER (WHERE x.k <> 'sonstiges')
+                  ELSE ARRAY['sonstiges'] END
+             FROM (SELECT t.k, min(t.i) AS i FROM unnest(${a} || ${b}) WITH ORDINALITY AS t(k, i) GROUP BY t.k) x)`;
 }
 
 export function fingerabdruck(titel: string, tag: string, lat: number, lng: number): string {

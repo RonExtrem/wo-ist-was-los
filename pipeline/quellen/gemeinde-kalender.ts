@@ -104,7 +104,8 @@ export function gemeindeQuelle(g: Gemeinde): Quelle {
         const beginn = zeitpunkt(m[1], m[2]);
         if (!beginn) continue;
         const endTag = m[3] ?? (m[4] ? m[1] : undefined);
-        let ende = endTag ? zeitpunkt(endTag, m[4] ?? (m[2] ? undefined : "23:59")) ?? undefined : undefined;
+        // Mehrtägig ohne Endzeit läuft bis zum Abend des letzten Tages (nicht nur bis 0 Uhr)
+        let ende = endTag ? zeitpunkt(endTag, m[4] ?? "23:59") ?? undefined : undefined;
         if (ende && ende < beginn) ende = undefined;
         if (wienTag(ende ?? beginn) < heute) continue;
 

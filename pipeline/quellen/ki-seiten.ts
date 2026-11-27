@@ -143,8 +143,9 @@ function inRohEvents(seite: KiSeite, liste: KiEvent[]): RohEvent[] {
   for (const e of liste) {
     const beginn = zuDatum(e.datum_beginn, e.uhrzeit_beginn);
     if (!beginn || !e.titel?.trim() || !e.ort?.trim()) continue;
-    const endTag = e.datum_ende || (e.uhrzeit_ende ? e.datum_beginn : "");
-    let ende = endTag ? zuDatum(endTag, e.uhrzeit_ende || (e.uhrzeit_beginn ? undefined : "23:59")) ?? undefined : undefined;
+    // Mehrtägig ohne Endzeit läuft bis zum Abend des letzten Tages (nicht nur bis 0 Uhr – sonst fehlt es am letzten Tag)
+    const endTag = e.datum_ende && e.datum_ende !== e.datum_beginn ? e.datum_ende : e.uhrzeit_ende ? e.datum_beginn : "";
+    let ende = endTag ? zuDatum(endTag, e.uhrzeit_ende || "23:59") ?? undefined : undefined;
     if (ende && ende < beginn) ende = undefined;
     const ganztaegig = !e.uhrzeit_beginn;
 
