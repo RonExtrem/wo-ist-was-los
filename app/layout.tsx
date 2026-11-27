@@ -17,7 +17,7 @@ const youngSerif = Young_Serif({ variable: "--font-young-serif", subsets: ["lati
 
 export const metadata: Metadata = {
   title: "Wo is wos los?",
-  description: "Veranstaltungen, Messen und Feste in Kärnten, Slowenien und Friaul.",
+  description: "Veranstaltungen, Messen und Feste in Österreich, Slowenien und Italien.",
   applicationName: "Wo is wos los?",
   appleWebApp: { capable: true, title: "Wo is wos los?", statusBarStyle: "default" },
   // icon ausdrücklich angeben: mit „icons“ hier wird app/icon.png nicht mehr automatisch eingebunden (sonst fehlt das Tab-Symbol)

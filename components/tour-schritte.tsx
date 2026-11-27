@@ -40,7 +40,12 @@ export const TOUR: TourSchritt[] = [
     seite: "/",
     ziel: '[data-tour="laender"]',
     titel: "Österreich, Slowenien, Italien",
-    text: "Wie viele Veranstaltungen es in deiner Gegend pro Land gibt. Antippen zeigt nur dieses Land.",
+    text: (
+      <>
+        Wie viele Veranstaltungen es in deiner Gegend pro Land gibt. Antippen zeigt nur dieses Land. Einzelne <strong>Bundesländer</strong> wählst
+        du gleich unter „Suchen“.
+      </>
+    ),
   },
   {
     seite: "/",
@@ -98,7 +103,12 @@ export const TOUR: TourSchritt[] = [
     seite: "/suchen",
     ziel: '[data-tour="mehr-filter"]',
     titel: "Genauer eingrenzen",
-    text: "Themen (z. B. nur Advent), Land & Bundesland (z. B. nur Kärnten) und „nur gratis“.",
+    text: (
+      <>
+        <strong>Themen</strong>: z. B. nur Advent. <strong>Land & Bundesland</strong>: Österreich antippen, dann z. B. nur Kärnten und
+        Steiermark – oder ganz Österreich. Und <strong>„Nur gratis“</strong>.
+      </>
+    ),
   },
   {
     seite: "/suchen",

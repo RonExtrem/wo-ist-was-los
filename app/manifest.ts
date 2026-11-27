@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Wo is wos los?",
     short_name: "Wo is wos los?",
-    description: "Veranstaltungen, Messen und Feste in Kärnten, Slowenien und Friaul.",
+    description: "Veranstaltungen, Messen und Feste in Österreich, Slowenien und Italien.",
     lang: "de-AT",
     start_url: "/",
     scope: "/",
