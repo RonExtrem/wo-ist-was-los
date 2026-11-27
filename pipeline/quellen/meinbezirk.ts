@@ -8,6 +8,7 @@ import {
   type KategorieId,
 } from "../../lib/kategorien.ts";
 import { istWienMitternacht, ldZeit, plusTage, wienTag, wienTagesende } from "../lib/zeit.ts";
+import { nichtSammeln } from "../lib/aussortieren.ts";
 
 const BASIS = "https://www.meinbezirk.at";
 
@@ -330,6 +331,8 @@ export function meinbezirkQuelle(land: Bundesland): Quelle {
         const ort = erstes.location?.[0];
         const a = ort?.address;
         if (!titel || !ort || !(a?.addressLocality || ort.name)) continue;
+        // Yoga, Berufsberatung, Selbsthilfegruppe … stecken oft unter „Sonstiges“ statt unter „Gesundheit/Seminare“
+        if (nichtSammeln(titel)) continue;
 
         const termine: Termin[] = [];
         for (const l of lds) {

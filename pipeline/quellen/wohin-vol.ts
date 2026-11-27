@@ -5,13 +5,10 @@ import type { Quelle, RohEvent } from "../typen.ts";
 import { kategorienAusText, freiluftAusText, type KategorieId } from "../../lib/kategorien.ts";
 import { istWienMitternacht, ldZeit, wienTag } from "../lib/zeit.ts";
 import { bekannteUeberspringen, bundeslandAusPlz } from "./meinbezirk.ts";
+import { nichtSammeln } from "../lib/aussortieren.ts";
 
 const BASIS = "https://wohin.vol.at";
 const ID = "wohin-vorarlberg";
-
-/** Kurse, Gesundheit, Selbsthilfe … – wie bei meinbezirk nicht sammeln (Papa sucht Feste, Märkte, Konzerte). */
-const NICHT_SAMMELN =
-  /\b(yoga|pilates|selbsthilfe|sprechstunde|beratung|meditation|therapie|seminar|workshop|webinar|schnupper|kurs|kurse|lehrgang|coaching|achtsamkeit|rückbildung|schwangeren|babymassage|stillgruppe|sprachcaf|englisch für|deutsch für|deutschkurs|nachhilfe|infoabend|informationsabend|elternabend|jahreshauptversammlung|generalversammlung)\w*/i;
 
 interface LdEvent {
   "@type"?: string;
@@ -84,7 +81,7 @@ export const wohinVorarlberg: Quelle = {
 
         const beschreibung = (ev.description ?? "").replace(/\s+/g, " ").trim().slice(0, 300) || undefined;
         const text = `${titel} ${beschreibung ?? ""}`;
-        if (NICHT_SAMMELN.test(titel)) {
+        if (nichtSammeln(titel)) {
           aussortiert++;
           continue;
         }
