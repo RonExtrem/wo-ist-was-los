@@ -253,7 +253,7 @@ function pruefzahl(text: string): number {
  * oder ihr Wochentag dran ist. Die übrigen gelten als „heute gesehen“.
  * Liefert die Adressen, die NICHT abgerufen werden müssen.
  */
-async function bekannteUeberspringen(
+export async function bekannteUeberspringen(
   quelleId: string,
   urls: string[],
   trocken: boolean,

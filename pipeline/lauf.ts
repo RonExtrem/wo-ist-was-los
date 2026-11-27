@@ -12,6 +12,7 @@ import { GEMEINDEN, gemeindeQuelle } from "./quellen/gemeinde-kalender.ts";
 import { kranjskaGora } from "./quellen/kranjska-gora.ts";
 import { suedtirol } from "./quellen/suedtirol.ts";
 import { dolomiti } from "./quellen/dolomiti.ts";
+import { wohinVorarlberg } from "./quellen/wohin-vol.ts";
 import { aufraeumen } from "./aufraeumen.ts";
 
 // Reihenfolge = Wichtigkeit: Kärnten und Grenzgebiete zuerst, dann die anderen Bundesländer
@@ -25,6 +26,7 @@ const ALLE_QUELLEN: Quelle[] = [
   dolomiti,
   ...KI_SEITEN.map(kiQuelle),
   ...meinbezirkRest,
+  wohinVorarlberg,
 ];
 // Zeitgrenze: danach keine neue Quelle mehr anfangen (der Lauf soll sauber enden, bevor GitHub ihn abbricht)
 const MAX_MINUTEN = Number(process.env.MAX_MINUTEN ?? 320);
