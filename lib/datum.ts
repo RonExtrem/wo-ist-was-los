@@ -17,12 +17,17 @@ function tagePlus(d: Date, n: number) {
   return new Date(d.getTime() + n * 86_400_000);
 }
 
+/** Kalendertag von morgen in Wien (über Mittag gerechnet, damit Sommer-/Winterzeit nicht stört). */
+function morgenTag(jetzt: Date): string {
+  return wienTag(tagePlus(new Date(`${wienTag(jetzt)}T12:00:00Z`), 1));
+}
+
 /** „Heute“, „Morgen“ oder „Sa., 28. November“ */
 export function tagText(iso: string, jetzt = new Date()): string {
   const d = new Date(iso);
   const t = wienTag(d);
   if (t === wienTag(jetzt)) return "Heute";
-  if (t === wienTag(tagePlus(jetzt, 1))) return "Morgen";
+  if (t === morgenTag(jetzt)) return "Morgen";
   return `${wochentagKurz.format(d)} ${tagMonat.format(d)}`;
 }
 
@@ -31,7 +36,7 @@ export function tagUeberschrift(tag: string, jetzt = new Date()): string {
   const d = new Date(`${tag}T12:00:00`);
   const lang = `${wochentagLang.format(d)}, ${tagMonat.format(d)}`;
   if (tag === wienTag(jetzt)) return `Heute · ${lang}`;
-  if (tag === wienTag(tagePlus(jetzt, 1))) return `Morgen · ${lang}`;
+  if (tag === morgenTag(jetzt)) return `Morgen · ${lang}`;
   return lang;
 }
 
@@ -39,7 +44,8 @@ export function tagUeberschrift(tag: string, jetzt = new Date()): string {
 export function zeitText(e: { beginn: string; ende: string | null; ganztaegig: boolean }): string {
   const b = new Date(e.beginn);
   const en = e.ende ? new Date(e.ende) : null;
-  const mehrtaegig = en && wienTag(en) !== wienTag(b);
+  // Über Mitternacht (z. B. 21:00–02:00) ist nicht mehrtägig – sonst ginge die Uhrzeit verloren
+  const mehrtaegig = en && wienTag(en) !== wienTag(b) && (e.ganztaegig || en.getTime() - b.getTime() >= 20 * 3600_000);
   if (mehrtaegig) {
     const gleicherMonat = fmt({ month: "long" }).format(b) === fmt({ month: "long" }).format(en);
     const bisText = tagMonat.format(en);
@@ -71,8 +77,10 @@ export function laeuftGerade(e: { beginn: string; ende: string | null }, jetzt =
 export function zeitfenster(art: "heute-morgen" | "wochenende" | "woche" | "monat" | "drei-monate" | "jahr", jetzt = new Date()) {
   const tag = wienTag(jetzt);
   const mitternacht = (t: string, plusTage: number) => {
+    // Nach Kalendertagen weiterzählen (nicht 24-h-Schritte) – sonst verrutscht das Ende bei Sommer-/Winterzeit um 1 Stunde
     const d = new Date(`${t}T00:00:00`);
-    return tagePlus(d, plusTage);
+    d.setDate(d.getDate() + plusTage);
+    return d;
   };
   switch (art) {
     case "heute-morgen":

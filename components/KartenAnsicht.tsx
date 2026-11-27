@@ -272,8 +272,9 @@ export function KartenAnsicht({
             );
           });
           m.on("click", "punkte", (ev: MapLayerMouseEvent) => {
-            const f = ev.features?.[0];
-            if (f && !tippRef.current) auswahlRef.current([String(f.properties.id)]);
+            // Alle Punkte unter dem Finger – mehrere Veranstaltungen am selben Ort liegen genau übereinander
+            const ids = [...new Set((ev.features ?? []).map((x) => String(x.properties?.id)))];
+            if (ids.length && !tippRef.current) auswahlRef.current(ids);
           });
           for (const ebene of ["gruppen", "punkte"]) {
             m.on("mouseenter", ebene, () => m && !tippRef.current && (m.getCanvas().style.cursor = "pointer"));

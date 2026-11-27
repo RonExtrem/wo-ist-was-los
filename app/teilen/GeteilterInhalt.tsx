@@ -98,6 +98,11 @@ export function GeteilterInhalt() {
     const d = (await r?.json().catch(() => null)) as { id?: string; fehler?: string } | null;
     if (d?.id) {
       if (!favoriten.has(d.id)) merken(d.id); // gleich gemerkt (und ggf. Frage nach Erinnerungen)
+      // Formular leeren: die Seite bleibt im Hintergrund erhalten – beim nächsten „Selbst eintragen“ soll sie frisch sein
+      setPhase("formular");
+      setF({ ...LEER });
+      setLink("");
+      setHinweis(null);
       router.replace(`/event/${d.id}`);
       return;
     }

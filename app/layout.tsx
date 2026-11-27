@@ -20,7 +20,8 @@ export const metadata: Metadata = {
   description: "Veranstaltungen, Messen und Feste in Kärnten, Slowenien und Friaul.",
   applicationName: "Wo is wos los?",
   appleWebApp: { capable: true, title: "Wo is wos los?", statusBarStyle: "default" },
-  icons: { apple: "/icons/apple-touch-icon.png" },
+  // icon ausdrücklich angeben: mit „icons“ hier wird app/icon.png nicht mehr automatisch eingebunden (sonst fehlt das Tab-Symbol)
+  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {

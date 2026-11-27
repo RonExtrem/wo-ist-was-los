@@ -16,6 +16,8 @@ self.addEventListener("push", (event) => {
       icon: "/icons/icon-192.png",
       badge: "/icons/badge-96.png",
       tag: data.tag,
+      // Gleicher Tag ersetzt die alte Meldung – trotzdem neu klingeln/vibrieren (sonst kommt „Heute: …“ lautlos)
+      renotify: !!data.tag,
       data: { url: data.url || "/" },
       vibrate: [80, 40, 80],
     })

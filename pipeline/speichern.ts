@@ -102,6 +102,8 @@ export async function speichereEvents(
           `INSERT INTO event_aenderungen (event_id, art, alt, neu) VALUES ($1, 'termin', $2, $3)`,
           [eventId, JSON.stringify({ beginn: rows[0].beginn, ende: rows[0].ende }), JSON.stringify({ beginn: e.beginn, ende: e.ende ?? null })]
         );
+        // Neuer Termin → Erinnerungen für den neuen Tag wieder schicken (die alten galten dem alten Datum)
+        await pool.query("DELETE FROM erinnerungen WHERE event_id = $1", [eventId]);
       }
     }
 

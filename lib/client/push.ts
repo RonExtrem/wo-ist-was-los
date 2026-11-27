@@ -34,11 +34,17 @@ export async function pushEinschalten(api: Api): Promise<PushStatus> {
   if (erlaubnis !== "granted") return erlaubnis === "denied" ? "blockiert" : "aus";
   const reg = (await navigator.serviceWorker.getRegistration()) ?? (await navigator.serviceWorker.register("/sw.js"));
   await navigator.serviceWorker.ready;
+  const vorhanden = await reg.pushManager.getSubscription();
   const abo =
-    (await reg.pushManager.getSubscription()) ??
-    (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: schluesselAlsBytes(VAPID_PUBLIC) }));
-  const res = await api("/api/push", { method: "POST", body: JSON.stringify(abo.toJSON()) });
-  if (!res.ok) return "aus";
+    vorhanden ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: schluesselAlsBytes(VAPID_PUBLIC) }));
+  // Server muss das Abo kennen – sonst zeigt das Handy „an“, aber es kommt nie etwas
+  const ok = await api("/api/push", { method: "POST", body: JSON.stringify(abo.toJSON()) })
+    .then((r) => r.ok)
+    .catch(() => false);
+  if (!ok) {
+    if (!vorhanden) await abo.unsubscribe().catch(() => {});
+    return "aus";
+  }
   await reg.showNotification("Benachrichtigungen sind an 👍", {
     body: "So sieht eine Erinnerung von „Wo is wos los?“ aus.",
     icon: "/icons/icon-192.png",
@@ -46,6 +52,14 @@ export async function pushEinschalten(api: Api): Promise<PushStatus> {
     tag: "willkommen",
   });
   return "an";
+}
+
+/** Beim Start: vorhandenes Abo (Erlaubnis da) nochmal beim Server melden – heilt eine früher fehlgeschlagene Anmeldung. */
+export async function pushAboErneuern(api: Api): Promise<void> {
+  if (!pushMoeglich() || Notification.permission !== "granted") return;
+  const reg = await navigator.serviceWorker.getRegistration();
+  const abo = await reg?.pushManager.getSubscription();
+  if (abo) await api("/api/push", { method: "POST", body: JSON.stringify(abo.toJSON()) });
 }
 
 export async function pushAusschalten(api: Api): Promise<PushStatus> {

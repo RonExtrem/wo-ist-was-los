@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { BellRing, Heart } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
-import { pushEinschalten, pushMoeglich } from "@/lib/client/push";
+import { pushEinschalten, pushMoeglich, pushStatus } from "@/lib/client/push";
 
 /** Nach dem Herz: „Soll ich dich erinnern?“ – Ja / Nein, nur merken. Eigener Dialog, kein Browser-Popup. */
 export function ErinnerungsFrage() {
@@ -22,28 +22,36 @@ export function ErinnerungsFrage() {
   const ja = async () => {
     if (!frageFuer) return;
     setLaeuft(true);
-    // Benachrichtigungen noch nicht erlaubt? Dann jetzt einschalten (das Handy fragt einmal nach)
-    if (pushMoeglich() && Notification.permission !== "granted") {
-      const s = await pushEinschalten(api).catch(() => "aus" as const);
-      if (s === "blockiert") {
-        setLaeuft(false);
-        setBlockiert(true);
-        return;
+    // Benachrichtigungen noch nicht an (Erlaubnis fehlt oder das Abo wurde ausgeschaltet)? Dann jetzt einschalten
+    let pushAn = false;
+    if (pushMoeglich()) {
+      pushAn = (await pushStatus().catch(() => "aus" as const)) === "an";
+      if (!pushAn) {
+        const s = await pushEinschalten(api).catch(() => "aus" as const);
+        if (s === "blockiert") {
+          setLaeuft(false);
+          setBlockiert(true);
+          return;
+        }
+        pushAn = s === "an";
       }
     }
     setLaeuft(false);
     setzeErinnerung(frageFuer, true);
-    if (nichtMehrFragen) setzeEinstellungen({ erinnerungFragen: false });
+    if (nichtMehrFragen) setzeEinstellungen({ erinnerungFragen: false, neueOhneErinnerung: false });
     zeigeHinweis(
-      pushMoeglich()
-        ? "Erinnerung ist eingestellt ✓ Vortag ca. 18 Uhr und am Tag ca. 8 Uhr."
-        : "Gemerkt ♥ Auf diesem Gerät gehen leider keine Benachrichtigungen."
+      !pushMoeglich()
+        ? "Gemerkt ♥ Auf diesem Gerät gehen leider keine Benachrichtigungen."
+        : pushAn
+          ? "Erinnerung ist eingestellt ✓ Vortag ca. 18 Uhr und am Tag ca. 8 Uhr."
+          : "Gemerkt ♥ Aber die Benachrichtigungen sind noch aus – unter Einstellungen einschalten, dann kommt die Erinnerung."
     );
     fertig();
   };
 
   const nein = () => {
-    if (nichtMehrFragen) setzeEinstellungen({ erinnern: false, erinnerungFragen: false });
+    // Nur künftige Herzen ohne Erinnerung – bereits eingestellte Erinnerungen bleiben
+    if (nichtMehrFragen) setzeEinstellungen({ erinnerungFragen: false, neueOhneErinnerung: true });
     zeigeHinweis("Gemerkt ♥ ohne Erinnerung. Du findest es unter „Meine“.");
     fertig();
   };

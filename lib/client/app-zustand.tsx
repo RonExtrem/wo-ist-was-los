@@ -3,7 +3,7 @@
 // Zentraler Zustand im Browser: Geräte-Schlüssel, Einstellungen, Startpunkt, Favoriten.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { STANDARD_INTERESSEN } from "@/lib/kategorien";
-import { pushMoeglich } from "./push";
+import { pushAboErneuern, pushMoeglich } from "./push";
 
 export interface Einstellungen {
   /** Vorname – jedes Handy ist das Profil einer Person */
@@ -23,6 +23,8 @@ export interface Einstellungen {
   erinnern: boolean;
   /** Beim Merken jedes Mal fragen: erinnern oder nur merken? */
   erinnerungFragen: boolean;
+  /** „Nur merken – nicht mehr fragen“: neue Herzen ohne Erinnerung (bisherige Erinnerungen bleiben) – nur auf dem Handy */
+  neueOhneErinnerung?: boolean;
   /** Push „Neu für dich“: täglich, seltener (2× pro Woche) oder aus */
   neuFuerDich: "taeglich" | "seltener" | "aus";
   /** Push am Donnerstag: Wochenend-Tipp */
@@ -132,11 +134,13 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
           const vorhanden = localStorage.getItem(SCHLUESSEL.token);
           if (vorhanden) return (tokenRef.current = vorhanden);
           const res = await fetch("/api/geraet", { method: "POST" });
-          if (!res.ok) return null;
+          if (!res.ok) throw new Error(String(res.status));
           const { token } = (await res.json()) as { token: string };
           localStorage.setItem(SCHLUESSEL.token, token);
           return (tokenRef.current = token);
         } catch {
+          // Beim nächsten Aufruf nochmal versuchen (sonst liefe die ganze Sitzung ohne Kennung und alles ginge verloren)
+          tokenPromise.current = null;
           return null;
         }
       })();
@@ -170,6 +174,8 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
       /* egal */
     }
     setBereit(true);
+    // Push-Abo des Handys beim Server auffrischen (falls die Anmeldung früher einmal fehlgeschlagen ist)
+    pushAboErneuern(api).catch(() => {});
     api("/api/favoriten")
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { ids: string[]; ohneErinnerung?: string[] } | null) => {
@@ -240,7 +246,7 @@ export function AppZustandProvider({ children }: { children: ReactNode }) {
       // Fragen, wenn Erinnerungen grundsätzlich an sind und „jedes Mal fragen“ eingestellt ist
       const fragen = !warSchon && e.erinnern && e.erinnerungFragen;
       // Beim Fragen erst einmal „nur merken“ – erinnert wird erst nach einem „Ja“
-      const erinnern = !warSchon && e.erinnern && !fragen;
+      const erinnern = !warSchon && e.erinnern && !fragen && !e.neueOhneErinnerung;
       if (warSchon) {
         zeigeHinweis("Nicht mehr gemerkt");
       } else if (fragen) {

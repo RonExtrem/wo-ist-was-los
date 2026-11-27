@@ -40,7 +40,8 @@ export async function sendePush(geraetId: string, n: Nachricht, art: string): Pr
       await webpush.sendNotification(
         { endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } },
         JSON.stringify(n),
-        { TTL: 6 * 3600, urgency: art === "erinnerung" || art === "aenderung" ? "high" : "normal" }
+        // Zeitlimit: ein hängender Push-Dienst darf nicht alle späteren Benachrichtigungen blockieren
+        { TTL: 6 * 3600, urgency: art === "erinnerung" || art === "aenderung" ? "high" : "normal", timeout: 10_000 }
       );
       ok++;
     } catch (e) {

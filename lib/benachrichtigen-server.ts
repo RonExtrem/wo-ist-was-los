@@ -2,6 +2,7 @@ import "server-only";
 import { sql } from "./db";
 import { sendePush, type Nachricht } from "./push-server";
 import { tagText, wienStunde, zeitText } from "./datum";
+import { NOCH_NICHT_VORBEI_SQL } from "./events-server";
 
 // Was die App wann verschickt (Zeiten in Wien):
 //   Morgens ~8 Uhr:  Erinnerung „Heute“, Absagen/Terminänderungen, „Neu für dich“, Quellen-Warnung an Michi
@@ -97,14 +98,16 @@ async function erinnerungen(art: "am_tag" | "vortag"): Promise<number> {
 /** Absagen und Terminänderungen bei gemerkten Events melden (jede Änderung nur einmal). */
 async function aenderungen(): Promise<number> {
   const db = sql();
+  const [{ bis_id: bisId }] = (await db.query("SELECT coalesce(max(id), 0) AS bis_id FROM event_aenderungen")) as { bis_id: number }[];
   const zeilen = (await db.query(
     `SELECT a.id AS aenderung_id, a.art, f.geraet_id, e.id, e.titel, e.beginn
        FROM event_aenderungen a
        JOIN events e ON e.id = a.event_id
        JOIN favoriten f ON f.event_id = a.event_id
-      WHERE NOT a.gemeldet
+      WHERE NOT a.gemeldet AND a.id <= $1
         AND coalesce(e.ende, e.beginn) > now() - interval '1 day'
-        AND ${mitAbo("f.geraet_id")}`
+        AND ${mitAbo("f.geraet_id")}`,
+    [bisId]
   )) as { aenderung_id: number; art: string; geraet_id: string; id: string; titel: string; beginn: string }[];
 
   let gesendet = 0;
@@ -125,8 +128,9 @@ async function aenderungen(): Promise<number> {
           };
     gesendet += (await sendePush(z.geraet_id, n, "aenderung")) > 0 ? 1 : 0;
   }
-  // Alles bis jetzt Erkannte gilt als erledigt (auch Änderungen an nicht gemerkten Events)
-  await db.query("UPDATE event_aenderungen SET gemeldet = true WHERE NOT gemeldet AND erkannt_am <= now()");
+  // Als erledigt gilt nur, was es beim Lesen schon gab (auch Änderungen an nicht gemerkten Events) –
+  // was der Sammler währenddessen neu einträgt, kommt beim nächsten Mal dran
+  await db.query("UPDATE event_aenderungen SET gemeldet = true WHERE NOT gemeldet AND id <= $1", [bisId]);
   return gesendet;
 }
 
@@ -198,7 +202,8 @@ async function wochenendTipp(): Promise<number> {
        SELECT e.id, e.titel, e.ort_name
          FROM events e, woche w
         WHERE e.status IN ('aktiv', 'geaendert')
-          AND coalesce(e.ende, e.beginn) >= ((w.montag + interval '4 days 14 hours') AT TIME ZONE 'Europe/Vienna')
+          AND NOT e.von_nutzer -- selbst eingetragene (von irgendeinem Handy) nicht an alle schicken
+          AND ${NOCH_NICHT_VORBEI_SQL} >= ((w.montag + interval '4 days 14 hours') AT TIME ZONE 'Europe/Vienna')
           AND e.beginn < ((w.montag + interval '7 days') AT TIME ZONE 'Europe/Vienna')
           AND ST_DWithin(e.geo, $1::geography, $2::float8 * 1000)
         ORDER BY (e.kategorien && $3::text[]) DESC,

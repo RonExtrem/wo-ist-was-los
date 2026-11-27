@@ -31,7 +31,7 @@ export async function ortFinden(anfrage: string): Promise<Ort | null> {
     if (!res.ok) return null;
     const d = ((await res.json()) as { lat: string; lon: string; address?: Record<string, string> }[])[0];
     const ort: Ort | null = d
-      ? { lat: Number(d.lat), lng: Number(d.lon), region: d.address?.state ?? null, land: d.address?.country_code?.toUpperCase() ?? null }
+      ? { lat: Number(d.lat), lng: Number(d.lon), region: d.address?.state ?? (d.address?.city === "Wien" ? "Wien" : null) /* Wien ist Stadt und Land zugleich */, land: d.address?.country_code?.toUpperCase() ?? null }
       : null;
     await db.query(
       "INSERT INTO geocode_cache (anfrage, lat, lng, region, land) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (anfrage) DO NOTHING",

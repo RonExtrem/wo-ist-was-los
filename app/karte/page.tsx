@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useApp } from "@/lib/client/app-zustand";
 import { useEvents } from "@/lib/client/use-events";
+import { useStunde } from "@/lib/client/use-stunde";
 import { KartenAnsicht } from "@/components/KartenAnsicht";
 import { EventKarte } from "@/components/EventKarte";
 import { OrtSuche } from "@/components/StartpunktWahl";
@@ -226,8 +227,9 @@ function KartenInhalt() {
     });
   };
 
+  const stunde = useStunde(); // Zeitraum neu rechnen, wenn die App über Nacht offen blieb
   const abfrage = useMemo(() => {
-    if (!bereit) return null;
+    if (!bereit || !stunde) return null;
     const { von, bis } = zeitfenster(zeit);
     return {
       lat: startpunkt.lat,
@@ -237,8 +239,8 @@ function KartenInhalt() {
       bis,
       max: 2500,
     };
-  }, [bereit, startpunkt.lat, startpunkt.lng, umkreis, zeit]);
-  const { events, laedt } = useEvents(abfrage);
+  }, [bereit, stunde, startpunkt.lat, startpunkt.lng, umkreis, zeit]);
+  const { events, laedt, fehler } = useEvents(abfrage);
 
   const alle = useMemo(() => events ?? [], [events]);
   // Immer alle Kategorien in fester Reihenfolge – mit Anzahl im gewählten Zeitraum/Umkreis (auch 0)
@@ -257,7 +259,7 @@ function KartenInhalt() {
     [alle, kategorien],
   );
   const kategorieUmschalten = (id: string) => {
-    setAuswahl([]);
+    listeSchliessen();
     setKategorien((jetzt) =>
       jetzt.includes(id) ? jetzt.filter((k) => k !== id) : [...jetzt, id],
     );
@@ -302,6 +304,11 @@ function KartenInhalt() {
     if (zoom) setTippGesehen(true);
   }, [setTippGesehen]);
 
+  const aktuellerStart = useRef(startpunkt);
+  useEffect(() => {
+    aktuellerStart.current = startpunkt;
+  }, [startpunkt]);
+
   // Punkt auf der Karte gewählt → dort suchen, Ortsname nachladen
   const kartenTipp = useCallback(
     (lat: number, lng: number) => {
@@ -311,12 +318,14 @@ function KartenInhalt() {
       }
       setHinweis(null);
       setPunktWaehlen(false);
-      setAuswahl([]);
+      setAuswahl([]); // hier ist die Liste zu (Punkt wählen), darum ohne Verlaufs-Eintrag
       setzeStartpunkt({ art: "anders", name: "Gewählter Punkt", lat, lng });
       fetch(`/api/ort?rueck=1&lat=${lat.toFixed(4)}&lng=${lng.toFixed(4)}`)
         .then((r) => r.json())
         .then((d: { name: string | null }) => {
-          if (d.name)
+          // Nur, wenn inzwischen kein anderer Startpunkt gewählt wurde (späte Antwort überschreibt sonst „Daheim“)
+          const jetzt = aktuellerStart.current;
+          if (d.name && jetzt.lat === lat && jetzt.lng === lng)
             setzeStartpunkt({ art: "anders", name: d.name, lat, lng });
         })
         .catch(() => {});
@@ -407,7 +416,7 @@ function KartenInhalt() {
                     an={zeit === z.id}
                     onClick={() => {
                       setZeit(z.id);
-                      setAuswahl([]);
+                      listeSchliessen();
                     }}
                   >
                     {z.text}
@@ -443,7 +452,11 @@ function KartenInhalt() {
                 </AuswahlKnopf>
               </div>
               <p className="mx-4 mt-2 inline-flex items-center gap-2 rounded-full bg-flaeche/95 px-3 py-1.5 text-[0.9rem] font-semibold shadow-md ring-1 ring-linie backdrop-blur">
-                {laedt || !events ? (
+                {fehler && !laedt ? (
+                  <button type="button" onClick={() => window.location.reload()} className="text-abendsonne">
+                    Laden hat nicht geklappt – antippen zum Neu-Laden
+                  </button>
+                ) : laedt || !events ? (
                   <>
                     <LoaderCircle className="h-4 w-4 animate-spin" /> Wird
                     geladen …
@@ -498,7 +511,7 @@ function KartenInhalt() {
           <button
             type="button"
             onClick={() => {
-              setAuswahl([]);
+              listeSchliessen();
               setHinweis(null);
               setPunktWaehlen((v) => !v);
             }}
@@ -568,7 +581,7 @@ function KartenInhalt() {
         }}
         gewaehlt={(o) => {
           setBlatt(null);
-          setAuswahl([]);
+          listeSchliessen();
           setzeStartpunkt({
             art: "anders",
             name: o.name,
@@ -583,7 +596,7 @@ function KartenInhalt() {
               className={zeile}
               onClick={() => {
                 setBlatt(null);
-                setAuswahl([]);
+                listeSchliessen();
                 setzeStartpunkt({
                   art: "daheim",
                   name: einstellungen.wohnortName,
@@ -608,7 +621,7 @@ function KartenInhalt() {
               className={zeile}
               onClick={() => {
                 setBlatt(null);
-                setAuswahl([]);
+                listeSchliessen();
                 setPunktWaehlen(true);
               }}
             >
@@ -641,7 +654,7 @@ function KartenInhalt() {
                 className={zeile}
                 onClick={() => {
                   setUmkreis(u.wert);
-                  setAuswahl([]);
+                  listeSchliessen();
                   setBlatt(null);
                 }}
               >
@@ -671,7 +684,7 @@ function KartenInhalt() {
               type="button"
               onClick={() => {
                 setKategorien([]);
-                setAuswahl([]);
+                listeSchliessen();
               }}
               className="min-h-14 flex-1 rounded-2xl bg-flaeche-2 text-lg font-semibold"
             >

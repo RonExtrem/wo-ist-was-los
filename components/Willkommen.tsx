@@ -100,7 +100,7 @@ function Assistent() {
               <>
                 <h1 className="mt-6 font-titel text-[2.2rem] leading-tight">Vom alten Handy übernehmen</h1>
                 <p className="mt-2 text-lg text-gedaempft">
-                  Am alten Handy unter Einstellungen → „Handy wechseln“ den Code anzeigen lassen und hier eingeben. Name, Daheim, Interessen und
+                  Am alten Handy unter Einstellungen → „Neues Handy?“ den Code anzeigen lassen und hier eingeben. Name, Daheim, Interessen und
                   alles Gemerkte kommen mit.
                 </p>
                 <div className="mt-6">

@@ -4,11 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { ArrowLeft, BellOff, BellRing, CalendarPlus, ExternalLink, Route, Share2, Check } from "lucide-react";
-import { pushEinschalten, pushMoeglich } from "@/lib/client/push";
+import { pushEinschalten, pushMoeglich, pushStatus } from "@/lib/client/push";
 import type { EventDetail } from "@/lib/event-typ";
 import { useApp } from "@/lib/client/app-zustand";
 import { HerzKnopf } from "@/components/HerzKnopf";
 import { KategorieBild } from "@/components/KategorieBild";
+
+/** Name der Webseite aus einem Link – ein kaputter Link (z. B. selbst eingetragen) darf die Seite nicht abstürzen lassen. */
+function hostVon(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "Originalseite";
+  }
+}
 
 export function ZurueckKnopf() {
   const router = useRouter();
@@ -67,19 +76,24 @@ export function DetailAktionen({ event: e }: { event: EventDetail }) {
       zeigeHinweis("Erinnerung ist aus – bleibt aber gemerkt.");
       return;
     }
-    if (!einstellungen.erinnern) setzeEinstellungen({ erinnern: true });
-    if (pushMoeglich() && Notification.permission !== "granted") {
+    if (pushMoeglich() && (await pushStatus().catch(() => "aus" as const)) !== "an") {
       const s = await pushEinschalten(api).catch(() => "aus" as const);
       if (s !== "an") {
-        zeigeHinweis("Benachrichtigungen sind am Handy gesperrt – bitte in den Handy-Einstellungen erlauben.");
+        zeigeHinweis(
+          s === "blockiert"
+            ? "Benachrichtigungen sind am Handy gesperrt – bitte in den Handy-Einstellungen erlauben."
+            : "Benachrichtigungen konnten nicht eingeschaltet werden – bitte gleich nochmal probieren."
+        );
         return;
       }
     }
+    // Erst wenn Benachrichtigungen wirklich gehen, Erinnerungen allgemein einschalten
+    if (!einstellungen.erinnern) setzeEinstellungen({ erinnern: true });
     setzeErinnerung(e.id, true);
     zeigeHinweis("Erinnerung ist eingestellt ✓");
   };
   const original = e.links[0];
-  const quelleName = original?.quelle ?? (original ? new URL(original.url).hostname.replace(/^www\./, "") : "");
+  const quelleName = original?.quelle ?? (original ? hostVon(original.url) : "");
   const route = e.lat != null && e.lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${e.lat},${e.lng}` : null;
 
   const teilen = async () => {
@@ -176,7 +190,7 @@ export function DetailAktionen({ event: e }: { event: EventDetail }) {
             {e.links.slice(1).map((l) => (
               <li key={l.url}>
                 <a href={l.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-2 font-semibold text-see underline-offset-4 hover:underline">
-                  <ExternalLink className="h-4 w-4" /> {l.quelle ?? new URL(l.url).hostname}
+                  <ExternalLink className="h-4 w-4" /> {l.quelle ?? hostVon(l.url)}
                 </a>
               </li>
             ))}

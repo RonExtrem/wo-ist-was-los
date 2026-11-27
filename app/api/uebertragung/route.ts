@@ -19,10 +19,11 @@ export async function GET(req: Request) {
   if (da[0]?.uebertragungscode) return Response.json({ code: da[0].uebertragungscode, gueltigBis: da[0].code_gueltig_bis });
 
   for (let i = 0; i < 10; i++) {
-    const code = `${WOERTER[randomInt(WOERTER.length)]}-${randomInt(1000, 10000)}`;
+    // 6 Ziffern und nur 2 Tage gültig: zu viele Möglichkeiten zum Durchprobieren (Code verrät Name, Daheim, Gemerktes)
+    const code = `${WOERTER[randomInt(WOERTER.length)]}-${randomInt(100000, 1000000)}`;
     try {
       const r = (await db.query(
-        "UPDATE geraete SET uebertragungscode = $2, code_gueltig_bis = now() + interval '14 days' WHERE id = $1 RETURNING code_gueltig_bis",
+        "UPDATE geraete SET uebertragungscode = $2, code_gueltig_bis = now() + interval '2 days' WHERE id = $1 RETURNING code_gueltig_bis",
         [geraet, code]
       )) as { code_gueltig_bis: string }[];
       return Response.json({ code, gueltigBis: r[0].code_gueltig_bis });
@@ -39,8 +40,8 @@ export async function POST(req: Request) {
   if (!geraet) return nichtErlaubt();
   const { code } = (await req.json().catch(() => ({}))) as { code?: string };
   const sauber = (code ?? "").toUpperCase().replace(/\s+/g, "").replace(/[–—]/g, "-");
-  if (!/^[A-ZÄÖÜ]{3,10}-?\d{4}$/.test(sauber)) return Response.json({ fehler: "So sieht der Code nicht aus (z. B. GAMS-4821)." }, { status: 400 });
-  const mitStrich = sauber.includes("-") ? sauber : sauber.replace(/(\d{4})$/, "-$1");
+  if (!/^[A-ZÄÖÜ]{3,10}-?\d{4,6}$/.test(sauber)) return Response.json({ fehler: "So sieht der Code nicht aus (z. B. GAMS-482193)." }, { status: 400 });
+  const mitStrich = sauber.includes("-") ? sauber : sauber.replace(/(\d{4,6})$/, "-$1");
   const db = sql();
   const alt = (await db.query("SELECT id FROM geraete WHERE uebertragungscode = $1 AND code_gueltig_bis > now()", [mitStrich])) as {
     id: string;

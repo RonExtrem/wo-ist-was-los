@@ -58,7 +58,7 @@ export function Uebertragung({ nurEingeben = false }: { nurEingeben?: boolean } 
             id="code"
             value={eingabe}
             onChange={(ev) => setEingabe(ev.target.value)}
-            placeholder="z. B. GAMS-4821"
+            placeholder="z. B. GAMS-482193"
             autoCapitalize="characters"
             autoComplete="off"
             className="h-12 min-w-0 flex-1 rounded-xl bg-flaeche px-3 text-lg uppercase ring-1 ring-linie outline-none focus:ring-2 focus:ring-see"
