@@ -91,13 +91,7 @@ export const BUNDESLAENDER: Bundesland[] = [
     tage: 35,
     wochen: 16,
   },
-  {
-    id: "meinbezirk-vorarlberg",
-    slug: "vorarlberg",
-    name: "Vorarlberg",
-    tage: 35,
-    wochen: 16,
-  },
+  // Vorarlberg fehlt absichtlich: dort gibt es auf meinbezirk praktisch nichts (immer 0 → Fehlalarm). Kommt von WOHIN (wohin-vol.ts).
 ];
 
 function listenUrl(
