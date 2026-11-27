@@ -32,7 +32,9 @@ async function ortErmitteln(e: RohEvent): Promise<{ lat: number; lng: number; re
     .filter((v, i, arr): v is string => !!v && arr.indexOf(v) === i);
   for (const anfrage of versuche) {
     const ort = await ortSuchen(anfrage);
-    if (ort) return { lat: ort.lat, lng: ort.lng, region: e.region ?? ort.region };
+    if (!ort) continue;
+    if (e.erlaubteRegionen && !(ort.region && e.erlaubteRegionen.includes(ort.region))) continue;
+    return { lat: ort.lat, lng: ort.lng, region: e.region ?? ort.region };
   }
   return null;
 }

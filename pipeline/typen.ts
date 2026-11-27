@@ -16,6 +16,8 @@ export interface RohEvent {
   adresse?: string; // Straße, PLZ, Ort – für die Ortssuche
   land: "AT" | "SI" | "IT";
   region?: string;
+  /** Ortssuche nur gelten lassen, wenn sie in einem dieser Bundesländer landet (gegen „Konstanz“ → gleichnamiger Ort in Kärnten). */
+  erlaubteRegionen?: string[];
   lat?: number;
   lng?: number;
   kategorien: KategorieId[];

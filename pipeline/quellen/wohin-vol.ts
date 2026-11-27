@@ -122,7 +122,10 @@ export const wohinVorarlberg: Quelle = {
           ortName,
           adresse,
           land: "AT",
-          region: bundeslandAusPlz(plz) ?? "Vorarlberg",
+          // Ohne eindeutige PLZ entscheidet die Ortssuche (z. B. St. Anton am Arlberg → Tirol)
+          region: bundeslandAusPlz(plz) ?? undefined,
+          // Deutsche/Schweizer Orte (Lindau, Konstanz, St. Gallen …) nicht auf gleichnamige Orte in Österreich legen
+          erlaubteRegionen: ["Vorarlberg", "Tirol"],
           kategorien: [...kategorien],
           bildUrl: bilder[0],
           freiluft: freiluftAusText(text),
